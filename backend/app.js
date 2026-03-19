@@ -84,17 +84,14 @@ app.use("/api/assets", require("./routes/assetRoutes"));
 app.use("/api/users", userImportRoutes);
 app.use("/api/files", require("./routes/fileRoutes"));
 
-// -------------------- ROOT --------------------
 app.get("/", (req, res) => {
   res.json({ message: "Project IMS backend running" });
 });
 
-// -------------------- 404 --------------------
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// -------------------- ERROR HANDLER --------------------
 app.use(errorHandler);
 
 module.exports = app;
