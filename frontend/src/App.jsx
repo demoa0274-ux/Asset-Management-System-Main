@@ -77,7 +77,7 @@ export default function App() {
             <Layout />
           </PrivateRoute>
         }
-      >
+        >
         <Route index element={<Landing />} />
         <Route path="branches" element={<Branch />} />
         <Route path="branches/:id" element={<BranchDetails />} />
