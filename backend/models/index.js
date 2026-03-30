@@ -1,4 +1,3 @@
-// backend/models/index.js
 const { Sequelize, DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -46,6 +45,7 @@ const {
   BranchSecuritySoftware,
   BranchSecuritySoftwareInstalled,
   BranchWindowsOS,
+  BranchOnlineConferenceTools,
   BranchWindowsServers,
 } = require("./BranchSoftware");
 
@@ -113,6 +113,7 @@ const db = {
   BranchSecuritySoftware,
   BranchSecuritySoftwareInstalled,
   BranchWindowsOS,
+  BranchOnlineConferenceTools,
   BranchWindowsServers,
 };
 
@@ -127,12 +128,14 @@ if (Branch && BranchInfra && !Branch.associations?.infra) {
   Branch.hasOne(BranchInfra, { foreignKey: "branchId", as: "infra" });
   BranchInfra.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });
 }
+
 if (Branch && BranchConnectivity && !Branch.associations?.connectivity) {
-  Branch.hasOne(BranchConnectivity, { foreignKey: "branchId", as: "connectivity" });
+  Branch.hasMany(BranchConnectivity, { foreignKey: "branchId", as: "connectivity" });
   BranchConnectivity.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });
 }
+
 if (Branch && BranchUps && !Branch.associations?.ups) {
-  Branch.hasOne(BranchUps, { foreignKey: "branchId", as: "ups" });
+  Branch.hasMany(BranchUps, { foreignKey: "branchId", as: "ups" });
   BranchUps.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });
 }
 
@@ -182,6 +185,7 @@ ensureHasMany(Branch, BranchUtilitySoftware, "utilitySoftware");
 ensureHasMany(Branch, BranchServices, "services");
 ensureHasMany(Branch, BranchLicenses, "licenses");
 ensureHasMany(Branch, BranchWindowsOS, "windowsOS");
+ensureHasMany(Branch, BranchOnlineConferenceTools, "onlineConferenceTools");
 ensureHasMany(Branch, BranchWindowsServers, "windowsServers");
 
 if (AssetTransfer && Branch && !AssetTransfer.associations?.fromBranch) {
@@ -233,6 +237,7 @@ const attachSubCategory = (Model) => {
   BranchServices,
   BranchLicenses,
   BranchWindowsOS,
+  BranchOnlineConferenceTools,
   BranchWindowsServers,
 ].forEach(attachSubCategory);
 

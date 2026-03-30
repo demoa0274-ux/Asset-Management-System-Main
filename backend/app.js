@@ -73,7 +73,7 @@ app.use("/api/service-stations", require("./routes/serviceStationRoutes"));
 app.use("/api/requests", require("./routes/requestRoutes"));
 app.use("/api/support", require("./routes/supportRoutes"));
 app.use("/api", require("./routes/assetMetaRoutes"));
-app.use("/api", require("./routes/assetTransferRoutes"));
+app.use("/api/assets", require("./routes/assetTransferRoutes"));
 app.use("/api/maintenance", require("./routes/assetMaintenanceRoutes"));
 app.use("/api/assets", require("./routes/assetImportRoutes"));
 app.use("/api/asset-history", require("./routes/assetHistoryRoutes"));

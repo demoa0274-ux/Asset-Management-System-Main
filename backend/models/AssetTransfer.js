@@ -1,55 +1,38 @@
-// backend/models/AssetTransfer.js
-module.exports = (sequelize, DataTypes) => {
-  const AssetTransfer = sequelize.define(
-    "AssetTransfer",
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
 
-      assetCode: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-        comment: "Unique asset code: FORMAT-ID (e.g., LAPTOP-1, DESKTOP-5)",
-      },
+const AssetTransfer = sequelize.define(
+  "AssetTransfer",
+  {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
 
-      section: {
-        type: DataTypes.STRING(30),
-        allowNull: false, // desktop/laptop/printer/...
-      },
+    assetCode: { type: DataTypes.STRING(100), allowNull: true },
+    section: { type: DataTypes.STRING(100), allowNull: false },
+    assetId: { type: DataTypes.INTEGER, allowNull: false },
 
-      assetId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-
-      fromBranchId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-
-      toBranchId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-
-      reason: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-
-      transferredBy: {
-        type: DataTypes.STRING(150),
-        allowNull: true,
-      },
+    transferType: {
+      type: DataTypes.ENUM("branch", "user", "both"),
+      allowNull: false,
+      defaultValue: "branch",
     },
-    {
-      tableName: "asset_transfers",
-      timestamps: true, // createdAt / updatedAt
-    }
-  );
 
-  return AssetTransfer;
-};
+    fromBranchId: { type: DataTypes.INTEGER, allowNull: true },
+    toBranchId: { type: DataTypes.INTEGER, allowNull: true },
+
+    fromUserId: { type: DataTypes.INTEGER, allowNull: true },
+    fromUserName: { type: DataTypes.STRING(255), allowNull: true },
+
+    toUserId: { type: DataTypes.INTEGER, allowNull: true },
+    toUserName: { type: DataTypes.STRING(255), allowNull: true },
+
+    reason: { type: DataTypes.TEXT, allowNull: true },
+    remarks: { type: DataTypes.TEXT, allowNull: true },
+    transferredBy: { type: DataTypes.STRING(255), allowNull: true },
+  },
+  {
+    tableName: "asset_transfers",
+    timestamps: true,
+  }
+);
+
+module.exports = AssetTransfer;

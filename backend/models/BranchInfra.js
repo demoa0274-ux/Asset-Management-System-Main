@@ -18,30 +18,36 @@ const BranchInfra = sequelize.define(
   { tableName: "branch_infra", timestamps: true }
 );
 
-/* ─── Connectivity (single per branch) ─── */
+/* ─── Connectivity (MULTI per branch — unique constraint removed) ─── */
 const BranchConnectivity = sequelize.define(
   "BranchConnectivity",
   {
-    id:                    { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    branchId:              { type: DataTypes.INTEGER, allowNull: false, unique: true },
-    sub_category_code:     { type: DataTypes.STRING(5),   allowNull: true },
-    connectivity_status:   { type: DataTypes.STRING(20),  allowNull: true },
-    connectivity_network:  { type: DataTypes.STRING(100), allowNull: true },
-    connectivity_lan_ip:   { type: DataTypes.STRING(50),  allowNull: true },
-    connectivity_wlink:    { type: DataTypes.STRING(150), allowNull: true },
-    installed_year:        { type: DataTypes.INTEGER,     allowNull: true },
-    location:              { type: DataTypes.STRING(150), allowNull: true },
-    remarks:               { type: DataTypes.TEXT,        allowNull: true },
+    id:                      { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    // NOTE: unique removed → multiple connectivity records per branch are now allowed
+    branchId:                { type: DataTypes.INTEGER, allowNull: false },
+    assetId:                 { type: DataTypes.STRING(100), allowNull: true },
+    sub_category_code:       { type: DataTypes.STRING(5),   allowNull: true },
+    connectivity_status:     { type: DataTypes.STRING(20),  allowNull: true },
+    connectivity_network:    { type: DataTypes.STRING(100), allowNull: true },
+    connectivity_lan_ip:     { type: DataTypes.STRING(50),  allowNull: true },
+    connectivity_wlink:      { type: DataTypes.STRING(150), allowNull: true },
+    connectivity_lan_switch: { type: DataTypes.STRING(100), allowNull: true },
+    connectivity_wifi:       { type: DataTypes.STRING(100), allowNull: true },
+    installed_year:          { type: DataTypes.INTEGER,     allowNull: true },
+    location:                { type: DataTypes.STRING(150), allowNull: true },
+    remarks:                 { type: DataTypes.TEXT,        allowNull: true },
   },
   { tableName: "branch_connectivity", timestamps: true }
 );
 
-/* ─── UPS (single per branch) ─── */
+/* ─── UPS (MULTI per branch — unique constraint removed, new fields added) ─── */
 const BranchUps = sequelize.define(
   "BranchUps",
   {
     id:                { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    branchId:          { type: DataTypes.INTEGER, allowNull: false, unique: true },
+    // NOTE: unique removed → multiple UPS records per branch are now allowed
+    branchId:          { type: DataTypes.INTEGER, allowNull: false },
+    assetId:           { type: DataTypes.STRING(100), allowNull: true },
     sub_category_code: { type: DataTypes.STRING(5),   allowNull: true },
     ups_model:         { type: DataTypes.STRING(100), allowNull: true },
     ups_backup_time:   { type: DataTypes.STRING(50),  allowNull: true },
@@ -50,6 +56,14 @@ const BranchUps = sequelize.define(
     battery_rating:    { type: DataTypes.STRING(50),  allowNull: true },
     ups_purchase_year: { type: DataTypes.INTEGER,     allowNull: true },
     ups_status:        { type: DataTypes.STRING(20),  allowNull: true },
+    // ── new fields ──────────────────────────────────────────────────────────
+    assigned_user:     { type: DataTypes.STRING(255), allowNull: true },
+    name:              { type: DataTypes.STRING(150), allowNull: true },
+    location:          { type: DataTypes.STRING(150), allowNull: true },
+    ip_address:        { type: DataTypes.STRING(50),  allowNull: true },
+    warranty_years:    { type: DataTypes.INTEGER,     allowNull: true },
+    expiry_date:       { type: DataTypes.DATEONLY,    allowNull: true },
+    // ────────────────────────────────────────────────────────────────────────
     remarks:           { type: DataTypes.TEXT,        allowNull: true },
   },
   { tableName: "branch_ups", timestamps: true }
@@ -62,12 +76,12 @@ const BranchScanner = sequelize.define(
     id:                { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     assetId:           { type: DataTypes.STRING(100), allowNull: true },
     branchId:          { type: DataTypes.INTEGER, allowNull: false },
-    sub_category_code: { type: DataTypes.STRING(5), allowNull: true },
-    scanner_name:      { type: DataTypes.STRING, allowNull: true },
-    scanner_model:     { type: DataTypes.STRING, allowNull: true },
-    assigned_user:     { type: DataTypes.STRING, allowNull: true },
+    sub_category_code: { type: DataTypes.STRING(5),   allowNull: true },
+    scanner_name:      { type: DataTypes.STRING,      allowNull: true },
+    scanner_model:     { type: DataTypes.STRING,      allowNull: true },
+    assigned_user:     { type: DataTypes.STRING,      allowNull: true },
     location:          { type: DataTypes.STRING(150), allowNull: true },
-    remarks:           { type: DataTypes.TEXT, allowNull: true },
+    remarks:           { type: DataTypes.TEXT,        allowNull: true },
   },
   { tableName: "branch_scanners", timestamps: true }
 );
@@ -79,68 +93,67 @@ const BranchProjector = sequelize.define(
     id:                     { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     assetId:                { type: DataTypes.STRING(100), allowNull: true },
     branchId:               { type: DataTypes.INTEGER, allowNull: false },
-    sub_category_code:      { type: DataTypes.STRING(5), allowNull: true },
+    sub_category_code:      { type: DataTypes.STRING(5),  allowNull: true },
     projector_name:         { type: DataTypes.STRING, allowNull: true },
     projector_model:        { type: DataTypes.STRING, allowNull: true },
-    projector_purchase_date:{ type: DataTypes.DATE, allowNull: true },
+    projector_purchase_date:{ type: DataTypes.DATE,   allowNull: true },
     projector_status:       { type: DataTypes.STRING, allowNull: true },
     location:               { type: DataTypes.STRING, allowNull: true },
     warranty_years:         { type: DataTypes.INTEGER, allowNull: true, defaultValue: 3 },
-    remarks:                { type: DataTypes.TEXT, allowNull: true },
+    remarks:                { type: DataTypes.TEXT,   allowNull: true },
   },
   { tableName: "branch_projectors", timestamps: true }
 );
 
 /* ─── Printer ─── */
-  const BranchPrinter = sequelize.define(
-    "BranchPrinter",
-    {
-      id:                { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      assetId:           { type: DataTypes.STRING(100), allowNull: true },
-      branchId:          { type: DataTypes.INTEGER, allowNull: false },
-      sub_category_code: { type: DataTypes.STRING(5), allowNull: true },
-      assigned_user:     { type: DataTypes.STRING, allowNull: true },
-      name:              { type: DataTypes.STRING, allowNull: true },
-      printer_name:      { type: DataTypes.STRING, allowNull: true },
-      printer_model:     { type: DataTypes.STRING, allowNull: true },
-      printer_type:      { type: DataTypes.STRING(50), allowNull: true },
-
-      printer_status:    { type: DataTypes.ENUM("Active", "Down"), defaultValue: "Active" },
-      location:          { type: DataTypes.STRING, allowNull: true },
-      ip_address:        { type: DataTypes.STRING, allowNull: true },
-      remarks:           { type: DataTypes.TEXT, allowNull: true },
-    },
-    { tableName: "branch_printers", timestamps: true }
-  );
+const BranchPrinter = sequelize.define(
+  "BranchPrinter",
+  {
+    id:                { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    assetId:           { type: DataTypes.STRING(100), allowNull: true },
+    branchId:          { type: DataTypes.INTEGER, allowNull: false },
+    sub_category_code: { type: DataTypes.STRING(5),  allowNull: true },
+    assigned_user:     { type: DataTypes.STRING, allowNull: true },
+    name:              { type: DataTypes.STRING, allowNull: true },
+    printer_name:      { type: DataTypes.STRING, allowNull: true },
+    printer_model:     { type: DataTypes.STRING, allowNull: true },
+    printer_type:      { type: DataTypes.STRING(50), allowNull: true },
+    printer_status:    { type: DataTypes.ENUM("Active","Down"), defaultValue: "Active" },
+    location:          { type: DataTypes.STRING, allowNull: true },
+    ip_address:        { type: DataTypes.STRING, allowNull: true },
+    remarks:           { type: DataTypes.TEXT,   allowNull: true },
+  },
+  { tableName: "branch_printers", timestamps: true }
+);
 
 /* ─── Desktop ─── */
 const BranchDesktop = sequelize.define(
   "BranchDesktop",
   {
     id:                   { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    sub_category_code:    { type: DataTypes.STRING(5), allowNull: true },
+    sub_category_code:    { type: DataTypes.STRING(5),   allowNull: true },
     branchId:             { type: DataTypes.INTEGER, allowNull: false },
     assetId:              { type: DataTypes.STRING(100), allowNull: true },
-    desktop_ids:          { type: DataTypes.TEXT, allowNull: true },
+    desktop_ids:          { type: DataTypes.TEXT,        allowNull: true },
     desktop_brand:        { type: DataTypes.STRING(100), allowNull: true },
-    desktop_ram:          { type: DataTypes.STRING(50), allowNull: true },
-    desktop_ssd:          { type: DataTypes.STRING(50), allowNull: true },
+    desktop_ram:          { type: DataTypes.STRING(50),  allowNull: true },
+    desktop_ssd:          { type: DataTypes.STRING(50),  allowNull: true },
     desktop_processor:    { type: DataTypes.STRING(100), allowNull: true },
     window_version:       { type: DataTypes.STRING(100), allowNull: true },
-    window_gen:           { type: DataTypes.STRING(20), allowNull: true },
+    window_gen:           { type: DataTypes.STRING(20),  allowNull: true },
     system_model:         { type: DataTypes.STRING(150), allowNull: true },
     userName:             { type: DataTypes.STRING(100), allowNull: true },
     location:             { type: DataTypes.STRING(150), allowNull: true },
-    ip_address:           { type: DataTypes.STRING(50), allowNull: true },
-    status:               { type: DataTypes.STRING(20), allowNull: true },
-    expiry_date:          { type: DataTypes.DATEONLY, allowNull: true },
+    ip_address:           { type: DataTypes.STRING(50),  allowNull: true },
+    status:               { type: DataTypes.STRING(20),  allowNull: true },
+    expiry_date:          { type: DataTypes.DATEONLY,    allowNull: true },
     monitor_name:         { type: DataTypes.STRING(100), allowNull: true },
     monitor_asset_code:   { type: DataTypes.STRING(100), allowNull: true },
     monitor_brand:        { type: DataTypes.STRING(100), allowNull: true },
-    monitor_size:         { type: DataTypes.STRING(20), allowNull: true },
+    monitor_size:         { type: DataTypes.STRING(20),  allowNull: true },
     monitor_location:     { type: DataTypes.STRING(100), allowNull: true },
-    monitor_status:       { type: DataTypes.STRING(50), allowNull: true },
-    remarks:              { type: DataTypes.TEXT, allowNull: true },
+    monitor_status:       { type: DataTypes.STRING(50),  allowNull: true },
+    remarks:              { type: DataTypes.TEXT,        allowNull: true },
   },
   { tableName: "branch_desktops", timestamps: true }
 );
@@ -162,7 +175,7 @@ const BranchLaptop = sequelize.define(
     location:          { type: DataTypes.STRING, allowNull: true },
     ip_address:        { type: DataTypes.STRING, allowNull: true },
     status:            { type: DataTypes.STRING(20), allowNull: true },
-    remarks:           { type: DataTypes.TEXT, allowNull: true },
+    remarks:           { type: DataTypes.TEXT,   allowNull: true },
   },
   { tableName: "branch_laptops", timestamps: true }
 );
@@ -195,7 +208,7 @@ const Camera = sequelize.define(
     cctv_asset_id: { type: DataTypes.STRING(50), allowNull: false },
     camera_model:  { type: DataTypes.STRING, allowNull: true },
     location:      { type: DataTypes.STRING, allowNull: true },
-    cctv_status:   { type: DataTypes.ENUM("On", "Off", "Repair"), defaultValue: "On" },
+    cctv_status:   { type: DataTypes.ENUM("On","Off","Repair"), defaultValue: "On" },
     remarks:       { type: DataTypes.TEXT, allowNull: true },
   },
   { tableName: "camera", timestamps: false }
@@ -217,7 +230,7 @@ const BranchPanel = sequelize.define(
     panel_status:      { type: DataTypes.STRING, allowNull: true },
     location:          { type: DataTypes.STRING, allowNull: true },
     warranty_years:    { type: DataTypes.INTEGER, allowNull: true, defaultValue: 2 },
-    remarks:           { type: DataTypes.TEXT, allowNull: true },
+    remarks:           { type: DataTypes.TEXT,   allowNull: true },
   },
   { tableName: "branch_panels", timestamps: true }
 );
@@ -229,7 +242,7 @@ const BranchIpPhone = sequelize.define(
     id:                   { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     assetId:              { type: DataTypes.STRING(100), allowNull: true },
     branchId:             { type: DataTypes.INTEGER, allowNull: false },
-    sub_category_code:    { type: DataTypes.STRING(5), allowNull: true },
+    sub_category_code:    { type: DataTypes.STRING(5),  allowNull: true },
     ip_telephone_ext_no:  { type: DataTypes.STRING, allowNull: true },
     ip_telephone_ip:      { type: DataTypes.STRING, allowNull: true },
     ip_telephone_status:  { type: DataTypes.STRING, allowNull: true },
@@ -237,7 +250,7 @@ const BranchIpPhone = sequelize.define(
     model:                { type: DataTypes.STRING, allowNull: true },
     brand:                { type: DataTypes.STRING, allowNull: true },
     location:             { type: DataTypes.STRING, allowNull: true },
-    remarks:              { type: DataTypes.TEXT, allowNull: true },
+    remarks:              { type: DataTypes.TEXT,   allowNull: true },
   },
   { tableName: "branch_ip_phones", timestamps: true }
 );
@@ -259,8 +272,7 @@ const BranchServer = sequelize.define(
     storage:                { type: DataTypes.STRING(100), allowNull: true },
     memory:                 { type: DataTypes.STRING(100), allowNull: true },
     windows_server_version: { type: DataTypes.STRING(100), allowNull: true },
-    virtualization:         { type: DataTypes.ENUM("Yes", "No"), allowNull: false, defaultValue: "No" },
-    how_many_server:        { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    virtualization:         { type: DataTypes.ENUM("Yes","No"), allowNull: false, defaultValue: "No" },
     remarks:                { type: DataTypes.TEXT, allowNull: true },
   },
   {
@@ -283,7 +295,6 @@ const BranchFirewallRouter = sequelize.define(
     purchase_date:         { type: DataTypes.DATEONLY,    allowNull: true },
     vendor:                { type: DataTypes.STRING(150), allowNull: true },
     license_expiry:        { type: DataTypes.DATEONLY,    allowNull: true },
-    // specification_remarks: { type: DataTypes.TEXT,        allowNull: true },
     remarks:               { type: DataTypes.TEXT,        allowNull: true },
   },
   { tableName: "firewall_router", timestamps: true }

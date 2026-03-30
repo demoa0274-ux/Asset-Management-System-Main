@@ -19,6 +19,7 @@ import FileLibraryPage from './pages/FileLibraryPage.jsx'
 import Nav from './components/Layout/Nav';
 import { useAuth } from './context/AuthContext';
 
+
 // Layout wrapper for protected pages
 function Layout() {
   const location = useLocation();

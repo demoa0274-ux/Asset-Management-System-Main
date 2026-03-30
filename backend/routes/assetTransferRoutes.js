@@ -1,14 +1,21 @@
-// backend/routes/assetTransferRoutes.js
 const express = require("express");
 const router = express.Router();
 
 const { protect } = require("../middleware/authMiddleware");
 const { adminOrSubadmin } = require("../middleware/adminMiddleware");
-const { transferAsset, getAssetTransferHistory } = require("../controllers/assetTransferController");
+const assetTransferController = require("../controllers/assetTransferController");
 
-router.post("/transfer", protect, adminOrSubadmin, transferAsset);
+router.post(
+  "/transfer",
+  protect,
+  adminOrSubadmin,
+  assetTransferController.transferAsset
+);
 
-router.get("/asset-transfers/history", protect, getAssetTransferHistory);
+router.get(
+  "/asset-transfers/history",
+  protect,
+  assetTransferController.getAssetTransferHistory
+);
 
 module.exports = router;
-

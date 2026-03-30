@@ -1,4 +1,3 @@
-// frontend/src/components/AssetHistoryModal.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import api from "../../services/api";
 import Alert from "../common/Alert";
@@ -18,20 +17,17 @@ export default function AssetHistoryModal({
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
 
-  /* ───────────────────────── BRANCH NAME RESOLVER ───────────────────────── */
+  const PAGE_SIZE = 10;
 
   const branchName = useCallback(
     (id) => {
-      if (!id && id !== 0) return "—";
+      if (id === null || id === undefined || id === "") return "—";
       const found = branches.find((b) => Number(b.id) === Number(id));
       return found ? found.name : `Branch #${id}`;
     },
     [branches]
   );
-
-  /* ───────────────────────── FETCH BRANCHES ───────────────────────── */
 
   const fetchBranches = useCallback(async () => {
     if (!token) return;
@@ -41,26 +37,34 @@ export default function AssetHistoryModal({
       });
       setBranches(res?.data?.data || res?.data || []);
     } catch {
-      /* silent */
+      // silent
     }
   }, [token]);
-
-  /* ───────────────────────── FETCH HISTORY ───────────────────────── */
 
   const fetchHistory = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
+    setAlert(null);
+
     try {
       let res;
 
       if (useTransfersTable) {
         const offset = (currentPage - 1) * PAGE_SIZE;
-        res = await api.get(
-          `/api/asset-transfers/history?limit=${PAGE_SIZE}&offset=${offset}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else if (branchId) {
+        let url = `/api/asset-transfers/history?limit=${PAGE_SIZE}&offset=${offset}`;
+
+        if (assetId) {
+          url += `&assetId=${assetId}`;
+        }
+        if (section) {
+          url += `&section=${encodeURIComponent(section)}`;
+        }
+
+        res = await api.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else if (branchId && assetId) {
         res = await api.get(
           `/api/asset-history/asset/${assetId}?branchId=${branchId}&limit=100`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -75,7 +79,13 @@ export default function AssetHistoryModal({
 
       setHistory(Array.isArray(data) ? data : []);
     } catch (error) {
-      setAlert({ type: "error", message: "Failed to load transfer history" });
+      setAlert({
+        type: "error",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load transfer history",
+      });
     } finally {
       setLoading(false);
     }
@@ -86,9 +96,8 @@ export default function AssetHistoryModal({
     filterByChangeType,
     useTransfersTable,
     currentPage,
+    section,
   ]);
-
-  /* ───────────────────────── EFFECTS ───────────────────────── */
 
   useEffect(() => {
     if (isOpen) {
@@ -97,9 +106,15 @@ export default function AssetHistoryModal({
     }
   }, [isOpen, fetchBranches, fetchHistory]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const fn = (e) => {
+      if (e.key === "Escape" && isOpen) onClose();
+    };
+    document.addEventListener("keydown", fn);
+    return () => document.removeEventListener("keydown", fn);
+  }, [isOpen, onClose]);
 
-  /* ───────────────────────── FORMAT DATE ───────────────────────── */
+  if (!isOpen) return null;
 
   const formatDate = (date) => {
     if (!date) return "—";
@@ -110,19 +125,27 @@ export default function AssetHistoryModal({
     }
   };
 
-  /* ───────────────────────── RENDER ───────────────────────── */
+  const typeBadgeClass = (type) => {
+    const v = String(type || "branch").toLowerCase();
+    if (v === "user") return "bg-violet-100 text-violet-700";
+    if (v === "both") return "bg-indigo-100 text-indigo-700";
+    return "bg-amber-100 text-amber-700";
+  };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl bg-white">
-        
-        {/* HEADER */}
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-5xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl bg-white">
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-black">Transfer History</h2>
               <p className="text-slate-400 text-sm mt-1">
-                Complete branch-to-branch movement log
+                Complete branch, user, and combined transfer log
               </p>
             </div>
 
@@ -135,15 +158,15 @@ export default function AssetHistoryModal({
           </div>
         </div>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto px-8 py-6 bg-gradient-to-b from-slate-50 to-white">
-
           {alert && <Alert type={alert.type} message={alert.message} />}
 
           {loading ? (
             <div className="text-center py-16">
               <div className="w-10 h-10 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin mx-auto" />
-              <p className="text-slate-500 mt-3 text-sm">Loading transfer history...</p>
+              <p className="text-slate-500 mt-3 text-sm">
+                Loading transfer history...
+              </p>
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-16 text-slate-500 font-semibold">
@@ -151,8 +174,6 @@ export default function AssetHistoryModal({
             </div>
           ) : (
             <div className="relative">
-              
-              {/* Timeline line */}
               <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-400 to-transparent" />
 
               <div className="space-y-6">
@@ -170,80 +191,123 @@ export default function AssetHistoryModal({
                   const from = branchName(fromId);
                   const to = branchName(toId);
 
+                  const transferType = String(record.transferType || "branch").toLowerCase();
+
+                  const fromUser =
+                    record.fromUserName ??
+                    record.from_user_name ??
+                    record.fromUser ??
+                    "—";
+
+                  const toUser =
+                    record.toUserName ??
+                    record.to_user_name ??
+                    record.toUser ??
+                    "—";
+
                   return (
                     <div key={record.id || index} className="flex gap-4">
-
-                      {/* DOT */}
                       <div className="w-10 h-10 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center shadow-lg z-10">
                         {index + 1}
                       </div>
 
-                      {/* CARD */}
                       <div className="flex-1 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden">
+                        <div className="flex justify-between items-center px-5 py-3 bg-slate-50 border-b flex-wrap gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                              TRANSFER
+                            </span>
 
-                        {/* CARD HEADER */}
-                        <div className="flex justify-between items-center px-5 py-3 bg-slate-50 border-b">
-                          <span className="text-xs font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
-                            TRANSFER
-                          </span>
+                            <span
+                              className={`text-xs font-bold px-3 py-1 rounded-full ${typeBadgeClass(
+                                transferType
+                              )}`}
+                            >
+                              {transferType.toUpperCase()}
+                            </span>
+
+                            {record.section ? (
+                              <span className="text-xs font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-full uppercase">
+                                {record.section}
+                              </span>
+                            ) : null}
+                          </div>
+
                           <span className="text-xs text-slate-500 font-semibold">
-                            {formatDate(record.createdAt)}
+                            {formatDate(record.createdAt || record.created_at)}
                           </span>
                         </div>
 
-                        {/* CARD BODY */}
                         <div className="p-5 space-y-4">
-
-                          {/* Asset Code */}
                           <div>
-                            <span className="text-xs text-slate-500">
-                              Asset Code:
-                            </span>
+                            <span className="text-xs text-slate-500">Asset Code:</span>
                             <span className="ml-2 font-bold text-indigo-700">
                               {record.assetCode || "—"}
                             </span>
                           </div>
 
-                          {/* FROM → TO SECTION */}
-                          <div className="flex items-center gap-3 flex-wrap">
-
-                            {/* FROM */}
-                            <div className="flex-1 min-w-[120px] bg-rose-50 border-2 border-rose-200 rounded-xl p-4">
-                              <div className="text-xs font-black text-rose-500 uppercase mb-1">
-                                From
-                              </div>
-                              <div className="text-sm font-bold text-rose-700">
-                                {from}
-                              </div>
-                              {fromId && (
-                                <div className="text-[10px] text-rose-400 mt-1">
-                                  ID: {fromId}
+                          {(transferType === "branch" || transferType === "both") && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex-1 min-w-[120px] bg-rose-50 border-2 border-rose-200 rounded-xl p-4">
+                                <div className="text-xs font-black text-rose-500 uppercase mb-1">
+                                  From Branch
                                 </div>
-                              )}
-                            </div>
-
-                            {/* ARROW */}
-                            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md">
-                              →
-                            </div>
-
-                            {/* TO */}
-                            <div className="flex-1 min-w-[120px] bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
-                              <div className="text-xs font-black text-emerald-500 uppercase mb-1">
-                                To
-                              </div>
-                              <div className="text-sm font-bold text-emerald-700">
-                                {to}
-                              </div>
-                              {toId && (
-                                <div className="text-[10px] text-emerald-400 mt-1">
-                                  ID: {toId}
+                                <div className="text-sm font-bold text-rose-700">
+                                  {from}
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                                {fromId !== null && fromId !== undefined && fromId !== "" && (
+                                  <div className="text-[10px] text-rose-400 mt-1">
+                                    ID: {fromId}
+                                  </div>
+                                )}
+                              </div>
 
-                          {/* Transferred By */}
+                              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md">
+                                →
+                              </div>
+
+                              <div className="flex-1 min-w-[120px] bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
+                                <div className="text-xs font-black text-emerald-500 uppercase mb-1">
+                                  To Branch
+                                </div>
+                                <div className="text-sm font-bold text-emerald-700">
+                                  {to}
+                                </div>
+                                {toId !== null && toId !== undefined && toId !== "" && (
+                                  <div className="text-[10px] text-emerald-400 mt-1">
+                                    ID: {toId}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {(transferType === "user" || transferType === "both") && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex-1 min-w-[120px] bg-violet-50 border-2 border-violet-200 rounded-xl p-4">
+                                <div className="text-xs font-black text-violet-500 uppercase mb-1">
+                                  From User
+                                </div>
+                                <div className="text-sm font-bold text-violet-700">
+                                  {fromUser || "—"}
+                                </div>
+                              </div>
+
+                              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md">
+                                →
+                              </div>
+
+                              <div className="flex-1 min-w-[120px] bg-sky-50 border-2 border-sky-200 rounded-xl p-4">
+                                <div className="text-xs font-black text-sky-500 uppercase mb-1">
+                                  To User
+                                </div>
+                                <div className="text-sm font-bold text-sky-700">
+                                  {toUser || "—"}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {record.transferredBy && (
                             <div className="text-sm text-slate-600">
                               Transferred by{" "}
@@ -253,10 +317,9 @@ export default function AssetHistoryModal({
                             </div>
                           )}
 
-                          {/* Reason */}
-                          {record.reason && (
+                          {(record.reason || record.remarks) && (
                             <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
-                              <strong>Reason:</strong> {record.reason}
+                              <strong>Reason:</strong> {record.reason || record.remarks}
                             </div>
                           )}
                         </div>
@@ -267,12 +330,11 @@ export default function AssetHistoryModal({
               </div>
             </div>
           )}
+
           {useTransfersTable && history.length > 0 && (
             <div className="mt-6 flex justify-center gap-3">
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.max(1, p - 1))
-                }
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40"
               >
@@ -282,10 +344,9 @@ export default function AssetHistoryModal({
               <span className="px-4 py-2 font-semibold text-slate-700">
                 Page {currentPage}
               </span>
+
               <button
-                onClick={() =>
-                  setCurrentPage((p) => p + 1)
-                }
+                onClick={() => setCurrentPage((p) => p + 1)}
                 disabled={history.length < PAGE_SIZE}
                 className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40"
               >

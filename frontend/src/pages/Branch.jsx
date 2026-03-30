@@ -597,7 +597,7 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
   // "hero" | "filters" | ""
   const [showPanel, setShowPanel] = useState("");
   const navigate = useNavigate();
-  const canManage = isAdmin || isSubAdmin;
+  const canManage = isAdmin ;
   const roleLabel = isAdmin ? "ADMIN" : isSubAdmin ? "SUB ADMIN" : "USER";
   const currentUserName = user?.name || user?.email || "Unknown User";
 
@@ -988,13 +988,12 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
               <div style={{ width:1, height:20, background:"var(--gray-200)" }} />
               <div style={{ fontSize:13, fontWeight:700, color:"var(--gray-700)", fontFamily:"Outfit,sans-serif" }}>Branch Management</div>
             </div>
+              {canManage &&(
             <div className="bp-topbar-right">
               <button className="bp-btn bp-btn-blue-outline bp-btn-sm" onClick={onExportCSV}>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                 <span className="bp-btn-label">Export</span>
               </button>
-              {canManage && (
-                <>
                   <button className="bp-btn bp-btn-green-outline bp-btn-sm" onClick={onClickImport}>
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
                     <span className="bp-btn-label">Import</span>
@@ -1004,9 +1003,8 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                     Add Branch
                   </button>
-                </>
-              )}
             </div>
+              )}
           </div>
 
           {/* ─── Panel Toggle Bar ─── */}

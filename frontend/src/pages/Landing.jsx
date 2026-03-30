@@ -672,6 +672,7 @@ const MODULES = [
     label: "File Library",
     color: "#0B5CAB",
     bgLight: "#eff6ff",
+    adminOnly: true,
     desc: "Centralized document and file repository. Access policy documents, IT manuals, and compliance reports.",
     stat: "Secure", statLabel: "Document vault",
     to: "/file-library", cta: "Open Library",
@@ -784,6 +785,7 @@ function ModuleCard({ mod, index, isManager }) {
 /* ─── Main ─── */
 export default function Landing() {
   const { user, isAdmin, isSubAdmin } = useAuth();
+  const Admin = isAdmin;
   const isManager = isAdmin || isSubAdmin;
   const userName = user?.name || "there";
 
@@ -792,8 +794,11 @@ export default function Landing() {
     : [`Hello, ${userName} 👋`, "View your branch assets easily", "Submit IT service requests", "Track progress and get support"];
 
   const typed = useTyping(typingLines);
-  const visibleModules = MODULES.filter(m => !m.managerOnly || isManager);
-
+    const visibleModules = MODULES.filter(
+      (m) =>
+        (!m.managerOnly || isManager) &&
+        (!m.adminOnly || isAdmin)
+    );
   /* Section gap */
   const sec = { marginTop: "clamp(28px, 4vw, 52px)" };
 
@@ -856,9 +861,11 @@ export default function Landing() {
                     <Link to="/branch-assets-report" className="cta-primary">
                       View Asset Master<ArrowIcon/>
                     </Link>
+                    {Admin && (
                     <Link to="/file-library" className="cta-secondary">
                       Open File Library
                     </Link>
+                    )}
                     <Link to="/requests" className="cta-ghost">
                       {isManager ? "Review Requests" : "Submit a Request"}
                     </Link>
@@ -987,7 +994,6 @@ export default function Landing() {
           </section>
         </main>
       </div>
-
       <Footer/>
     </>
   );

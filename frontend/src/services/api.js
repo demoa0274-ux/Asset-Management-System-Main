@@ -3,11 +3,8 @@ import axios from "axios";
 import { HTTP_STATUS, API_TIMEOUT, STORAGE_KEYS } from "../utils/constants";
 
 // ✅ Auto-detect API host from where frontend is opened (LAN-safe)
-const API_PORT = 5000;
+const API_PORT = 5001;
 
-// If you're using CRA, set REACT_APP_API_URL.
-// If you're using Vite, set VITE_API_URL.
-// Otherwise fallback to same host as frontend: http(s)://<host>:5000
 const baseURL =
   (typeof import.meta !== "undefined" &&
     import.meta.env &&

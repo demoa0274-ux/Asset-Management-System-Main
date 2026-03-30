@@ -1,4 +1,3 @@
-// backend/routes/branchRoutes.js
 const express = require("express");
 const router = express.Router();
 
@@ -19,7 +18,23 @@ router.put("/:id", protect, adminOrSubadmin, branchController.updateBranch);
 router.delete("/:id", protect, adminOnly, branchController.deleteBranch);
 
 router.put("/:id/infra", protect, adminOrSubadmin, branchController.updateInfra);
+
+// Connectivity
+router.get("/:id/connectivity", protect, branchController.connectivity.list);
+router.post("/:id/connectivity", protect, adminOrSubadmin, branchController.connectivity.create);
+router.put("/:id/connectivity/:rowId", protect, adminOrSubadmin, branchController.connectivity.update);
+router.delete("/:id/connectivity/:rowId", protect, adminOrSubadmin, branchController.connectivity.remove);
+
+// legacy
 router.put("/:id/connectivity", protect, adminOrSubadmin, branchController.updateConnectivity);
+
+// UPS
+router.get("/:id/ups", protect, branchController.ups.list);
+router.post("/:id/ups", protect, adminOrSubadmin, branchController.ups.create);
+router.put("/:id/ups/:rowId", protect, adminOrSubadmin, branchController.ups.update);
+router.delete("/:id/ups/:rowId", protect, adminOrSubadmin, branchController.ups.remove);
+
+// legacy
 router.put("/:id/ups", protect, adminOrSubadmin, branchController.updateUps);
 
 router.get("/:id/scanners", protect, branchController.scanners.list);
@@ -77,13 +92,11 @@ router.post("/:id/firewall-routers", protect, adminOrSubadmin, branchController.
 router.put("/:id/firewall-routers/:rowId", protect, adminOrSubadmin, branchController.firewallRouters.update);
 router.delete("/:id/firewall-routers/:rowId", protect, adminOrSubadmin, branchController.firewallRouters.remove);
 
-/* EXTRA ASSETS */
 router.get("/:id/switches", protect, branchController.switches.list);
 router.post("/:id/switches", protect, adminOrSubadmin, branchController.switches.create);
 router.put("/:id/switches/:rowId", protect, adminOrSubadmin, branchController.switches.update);
 router.delete("/:id/switches/:rowId", protect, adminOrSubadmin, branchController.switches.remove);
 
-/* EXTRA MONITORS */
 router.get("/:id/extra-monitors", protect, branchController.extraMonitors.list);
 router.post("/:id/extra-monitors", protect, adminOrSubadmin, branchController.extraMonitors.create);
 router.put("/:id/extra-monitors/:rowId", protect, adminOrSubadmin, branchController.extraMonitors.update);
@@ -116,24 +129,9 @@ router.put("/:id/security-software/:rowId", protect, adminOrSubadmin, branchCont
 router.delete("/:id/security-software/:rowId", protect, adminOrSubadmin, branchController.securitySoftware.remove);
 
 router.get("/:id/security-software-installed", protect, branchController.securitySoftwareInstalled.list);
-router.post(
-  "/:id/security-software-installed",
-  protect,
-  adminOrSubadmin,
-  branchController.securitySoftwareInstalled.create
-);
-router.put(
-  "/:id/security-software-installed/:rowId",
-  protect,
-  adminOrSubadmin,
-  branchController.securitySoftwareInstalled.update
-);
-router.delete(
-  "/:id/security-software-installed/:rowId",
-  protect,
-  adminOrSubadmin,
-  branchController.securitySoftwareInstalled.remove
-);
+router.post("/:id/security-software-installed", protect, adminOrSubadmin, branchController.securitySoftwareInstalled.create);
+router.put("/:id/security-software-installed/:rowId", protect, adminOrSubadmin, branchController.securitySoftwareInstalled.update);
+router.delete("/:id/security-software-installed/:rowId", protect, adminOrSubadmin, branchController.securitySoftwareInstalled.remove);
 
 router.get("/:id/utility-software", protect, branchController.utilitySoftware.list);
 router.post("/:id/utility-software", protect, adminOrSubadmin, branchController.utilitySoftware.create);
@@ -159,5 +157,10 @@ router.get("/:id/windows-servers", protect, branchController.windowsServers.list
 router.post("/:id/windows-servers", protect, adminOrSubadmin, branchController.windowsServers.create);
 router.put("/:id/windows-servers/:rowId", protect, adminOrSubadmin, branchController.windowsServers.update);
 router.delete("/:id/windows-servers/:rowId", protect, adminOrSubadmin, branchController.windowsServers.remove);
+
+router.get("/:id/online-conference-tools", protect, branchController.onlineConferenceTools.list);
+router.post("/:id/online-conference-tools", protect, adminOrSubadmin, branchController.onlineConferenceTools.create);
+router.put("/:id/online-conference-tools/:rowId", protect, adminOrSubadmin, branchController.onlineConferenceTools.update);
+router.delete("/:id/online-conference-tools/:rowId", protect, adminOrSubadmin, branchController.onlineConferenceTools.remove);
 
 module.exports = router;

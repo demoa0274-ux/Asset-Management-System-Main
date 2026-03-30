@@ -1,6 +1,16 @@
 const bcrypt = require("bcryptjs");
-const { sequelize } = require("../config/db"); // your Sequelize instance
-const { QueryTypes } = require("sequelize");
+const User = require("../models/User");
+
+const normalizeRole = (role) => {
+  const value = String(role || "").trim().toLowerCase();
+
+  if (value === "admin") return "admin";
+  if (value === "subadmin" || value === "sub_admin" || value === "sub-admin") {
+    return "subadmin";
+  }
+
+  return "user";
+};
 
 exports.bulkImportUsers = async (req, res) => {
   const { users } = req.body;
@@ -10,34 +20,31 @@ exports.bulkImportUsers = async (req, res) => {
   }
 
   try {
-    // 1️⃣ Filter valid users
-    const validUsers = users.filter(u => u.name && u.email && u.password);
+    const validUsers = users.filter((u) => u.name && u.email && u.password);
 
     if (!validUsers.length) {
       return res.status(400).json({ message: "No valid users found." });
     }
 
-    // 2️⃣ Remove duplicate emails in the Excel/CSV itself
     const uniqueMap = new Map();
-    validUsers.forEach(u => uniqueMap.set(u.email.toLowerCase(), u));
+    validUsers.forEach((u) => {
+      uniqueMap.set(String(u.email).trim().toLowerCase(), u);
+    });
     const uniqueUsers = Array.from(uniqueMap.values());
 
-    const emails = uniqueUsers.map(u => u.email.toLowerCase());
+    const emails = uniqueUsers.map((u) => String(u.email).trim().toLowerCase());
 
-    // 3️⃣ Check existing emails in DB
-    const existing = await sequelize.query(
-      `SELECT email FROM users WHERE email IN (:emails)`,
-      {
-        replacements: { emails },
-        type: QueryTypes.SELECT
-      }
+    const existingUsers = await User.findAll({
+      where: { email: emails },
+      attributes: ["email"],
+    });
+
+    const existingSet = new Set(
+      existingUsers.map((u) => String(u.email).trim().toLowerCase())
     );
 
-    const existingSet = new Set(existing.map(e => e.email.toLowerCase()));
-
-    // 4️⃣ Filter out users that already exist
     const usersToInsert = uniqueUsers.filter(
-      u => !existingSet.has(u.email.toLowerCase())
+      (u) => !existingSet.has(String(u.email).trim().toLowerCase())
     );
 
     if (!usersToInsert.length) {
@@ -46,31 +53,23 @@ exports.bulkImportUsers = async (req, res) => {
       });
     }
 
-    // 5️⃣ Hash passwords
     const hashedData = await Promise.all(
-      usersToInsert.map(async u => {
-        const hash = await bcrypt.hash(u.password, 10);
-        return {
-          name: u.name,
-          email: u.email.toLowerCase(),
-          password: hash
-        };
-      })
+      usersToInsert.map(async (u) => ({
+        name: String(u.name).trim(),
+        email: String(u.email).trim().toLowerCase(),
+        password: await bcrypt.hash(String(u.password), 10),
+        role: normalizeRole(u.role),
+        is_admin: normalizeRole(u.role) === "admin",
+      }))
     );
 
-    // 6️⃣ Bulk insert using Sequelize
-    // Sequelize raw query with multiple VALUES
-    const values = hashedData.map(u => `('${u.name}', '${u.email}', '${u.password}')`).join(", ");
-    await sequelize.query(
-      `INSERT INTO users (name, email, password) VALUES ${values}`
-    );
+    await User.bulkCreate(hashedData);
 
     res.json({
       message: `${hashedData.length} users imported successfully.`,
     });
-
   } catch (err) {
     console.error("Bulk import error:", err);
-    res.status(500).json({ message: "Import failed." });
+    res.status(500).json({ message: err.message || "Import failed." });
   }
 };

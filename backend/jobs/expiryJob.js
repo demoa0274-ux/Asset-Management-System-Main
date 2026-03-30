@@ -9,9 +9,13 @@ const {
   BranchLicenses,
   BranchServices,
   BranchWindowsServers,
+  BranchWindowsOS,
   BranchApplicationSoftware,
   BranchOfficeSoftware,
+  BranchUtilitySoftware,
   BranchSecuritySoftware,
+  BranchSecuritySoftwareInstalled,
+  BranchOnlineConferenceTools,
   BranchDesktop,
   BranchLaptop,
   BranchPrinter,
@@ -39,6 +43,15 @@ function buildUniqKey(entityType, entityId, dueDate, status) {
   return `${entityType}:${entityId}:${dueDate}:${status}`;
 }
 
+function getDisplayName(row, keys = [], fallback) {
+  for (const key of keys) {
+    if (row[key] && String(row[key]).trim()) {
+      return String(row[key]).trim();
+    }
+  }
+  return fallback;
+}
+
 async function runExpiryCheck({ daysAhead = 3 } = {}) {
   const adminEmail = process.env.ADMIN_EMAIL;
 
@@ -47,23 +60,20 @@ async function runExpiryCheck({ daysAhead = 3 } = {}) {
   const end = toDateOnly(addDays(today, daysAhead));
 
   const sources = [
-    { entityType: "licenses", model: BranchLicenses, nameKey: "license_name", dateField: "expiry_date" },
-    { entityType: "services", model: BranchServices, nameKey: "service_name", dateField: "expiry_date" },
-    { entityType: "windows_servers", model: BranchWindowsServers, nameKey: "server_name", dateField: "expiry_date" },
-    { entityType: "application_software", model: BranchApplicationSoftware, nameKey: "software_name", dateField: "expiry_date" },
-    { entityType: "office_software", model: BranchOfficeSoftware, nameKey: "software_name", dateField: "expiry_date" },
-    { entityType: "security_software", model: BranchSecuritySoftware, nameKey: "product_name", dateField: "expiry_date" },
+    { entityType: "licenses", model: BranchLicenses, nameKeys: ["license_name", "product_name", "license_key"], dateField: "expiry_date" },
+    { entityType: "services", model: BranchServices, nameKeys: ["service_name", "service_provider"], dateField: "expiry_date" },
+    { entityType: "windows_servers", model: BranchWindowsServers, nameKeys: ["server_name", "vendor_name", "version"], dateField: "expiry_date" },
+    { entityType: "windows_os", model: BranchWindowsOS, nameKeys: ["vendor_name", "version", "edition"], dateField: "expiry_date" },
+    { entityType: "application_software", model: BranchApplicationSoftware, nameKeys: ["software_name", "vendor_name", "version"], dateField: "expiry_date" },
+    { entityType: "office_software", model: BranchOfficeSoftware, nameKeys: ["software_name", "vendor_name", "version"], dateField: "expiry_date" },
+    { entityType: "utility_software", model: BranchUtilitySoftware, nameKeys: ["software_name", "vendor_name", "version"], dateField: "expiry_date" },
+    { entityType: "security_software", model: BranchSecuritySoftware, nameKeys: ["product_name", "vendor_name", "version"], dateField: "expiry_date" },
+    { entityType: "security_software_installed", model: BranchSecuritySoftwareInstalled, nameKeys: ["product_name", "software_name", "installed_by", "device_name"], dateField: "expiry_date" },
+    { entityType: "online_conference_tools", model: BranchOnlineConferenceTools, nameKeys: ["tool_name", "vendor_name", "license_type"], dateField: "expiry_date" },
 
-    { entityType: "desktops", model: BranchDesktop, nameKey: "desktop_brand", dateField: "expiry_date" },
-    { entityType: "laptops", model: BranchLaptop, nameKey: "laptop_brand", dateField: "expiry_date" },
-    { entityType: "printers", model: BranchPrinter, nameKey: "printer_model", dateField: "expiry_date" },
-    { entityType: "projectors", model: BranchProjector, nameKey: "projector_model", dateField: "expiry_date" },
-    { entityType: "ups", model: BranchUps, nameKey: "ups_model", dateField: "expiry_date" },
-    { entityType: "panels", model: BranchPanel, nameKey: "panel_name", dateField: "expiry_date" },
-    { entityType: "ip_phones", model: BranchIpPhone, nameKey: "model", dateField: "expiry_date" },
-
-    { entityType: "servers", model: BranchServer, nameKey: "ip_address", dateField: "expiry_date" },
-    { entityType: "firewall_routers", model: BranchFirewallRouter, nameKey: "model", dateField: "license_expiry" },
+    // existing hardware / network tables kept unchanged
+    { entityType: "servers", model: BranchServer, nameKeys: ["ip_address"], dateField: "expiry_date" },
+    { entityType: "firewall_routers", model: BranchFirewallRouter, nameKeys: ["model"], dateField: "license_expiry" },
   ];
 
   const newNotifications = [];
@@ -74,8 +84,14 @@ async function runExpiryCheck({ daysAhead = 3 } = {}) {
     const dateField = src.dateField;
 
     const [expiringSoon, overdue] = await Promise.all([
-      src.model.findAll({ where: { [dateField]: { [Op.between]: [start, end] } }, limit: 5000 }),
-      src.model.findAll({ where: { [dateField]: { [Op.lt]: start } }, limit: 5000 }),
+      src.model.findAll({
+        where: { [dateField]: { [Op.between]: [start, end] } },
+        limit: 5000,
+      }),
+      src.model.findAll({
+        where: { [dateField]: { [Op.lt]: start } },
+        limit: 5000,
+      }),
     ]);
 
     const rows = [
@@ -104,15 +120,22 @@ async function runExpiryCheck({ daysAhead = 3 } = {}) {
       const uniq = buildUniqKey(src.entityType, entityId, expiry, status);
       if (existingKeys.has(uniq)) continue;
 
-      const displayName =
-        (r[src.nameKey] && String(r[src.nameKey]).trim()) || `${src.entityType}#${entityId}`;
+      const displayName = getDisplayName(
+        r,
+        src.nameKeys || [],
+        `${src.entityType}#${entityId}`
+      );
+
       const branchId = r.branchId ?? null;
 
-      const title = status === "OVERDUE" ? `Expired: ${displayName}` : `Expiry soon: ${displayName}`;
-      const message =
-        status === "OVERDUE"
-          ? `${displayName} expired on ${expiry}.`
-          : `${displayName} will expire on ${expiry} (within ${daysAhead} days).`;
+      const title = status === "OVERDUE"
+        ? `Expired: ${displayName}`
+        : `Expiry soon: ${displayName}`;
+
+      const message = status === "OVERDUE"
+        ? `${displayName} expired on ${expiry}.`
+        : `${displayName} will expire on ${expiry} (within ${daysAhead} days).`;
+
       const notifType = status === "OVERDUE" ? "error" : "warning";
 
       try {
@@ -138,7 +161,10 @@ async function runExpiryCheck({ daysAhead = 3 } = {}) {
         });
         newNotifications.push(created);
       } catch (err) {
-        console.error(`[ExpiryJob] Failed to create notification for ${displayName}:`, err.message || err);
+        console.error(
+          `[ExpiryJob] Failed to create notification for ${displayName}:`,
+          err.message || err
+        );
       }
     }
   }
@@ -152,10 +178,10 @@ async function runExpiryCheck({ daysAhead = 3 } = {}) {
         (n, i) => `
       <tr style="border-bottom:1px solid #ddd;">
         <td style="padding:8px;text-align:center;">${i + 1}</td>
-        <td style="padding:8px;">${n.type.toUpperCase()}</td>
+        <td style="padding:8px;">${String(n.type || "").toUpperCase()}</td>
         <td style="padding:8px;">${n.title}</td>
         <td style="padding:8px;text-align:center;">${n.meta?.branchId || "-"}</td>
-        <td style="padding:8px;text-align:center;">${n.dueDate || n.due_date}</td>
+        <td style="padding:8px;text-align:center;">${n.dueDate || n.due_date || "-"}</td>
       </tr>`
       )
       .join("");

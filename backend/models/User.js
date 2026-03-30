@@ -1,4 +1,3 @@
-// backend/models/User.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -23,6 +22,7 @@ const User = sequelize.define(
 
     is_admin: {
       type: DataTypes.BOOLEAN,
+      allowNull: true,
       defaultValue: false,
     },
 
@@ -31,12 +31,11 @@ const User = sequelize.define(
       allowNull: false,
       defaultValue: "user",
     },
-    
-    img_url: {
-        type: DataTypes.TEXT("long"),
-        allowNull: true,
-      },
 
+    img_url: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
 
     reset_otp: {
       type: DataTypes.STRING,
@@ -50,7 +49,8 @@ const User = sequelize.define(
   },
   {
     timestamps: true,
-    underscored: true, // DB: created_at, updated_at, reset_otp, reset_otp_expires
+    underscored: true,
+    tableName: "users",
   }
 );
 

@@ -34,6 +34,7 @@ const {
   BranchServices,
   BranchLicenses,
   BranchWindowsOS,
+  BranchOnlineConferenceTools,
   BranchWindowsServers,
 
   AssetSubCategory,
@@ -73,44 +74,18 @@ async function updateOrCreate(model, branchId, data) {
   await record.update(data);
   return record;
 }
-exports.extraMonitors = {
-  list: asyncHandler(async (req, res) => {
-    const { id: branchId } = req.params;
-    const rows = await BranchExtraMonitor.findAll({
-      where: { branchId },
-      order: [["id", "ASC"]],
-    });
-    return sendSuccess(res, rows, "Fetched successfully");
-  }),
 
-  create: asyncHandler(async (req, res) => {
-    const { id: branchId } = req.params;
-    console.log("extra monitor create hit", { branchId, body: req.body });
-    const row = await BranchExtraMonitor.create({ branchId, ...req.body });
-    return sendSuccess(res, row, "Created successfully", 201);
-  }),
-
-  update: asyncHandler(async (req, res) => {
-    const { id: branchId, rowId } = req.params;
-    const row = await BranchExtraMonitor.findOne({ where: { id: rowId, branchId } });
-    if (!row) return sendError(res, "Record not found", 404);
-    await row.update(req.body);
-    return sendSuccess(res, row, "Updated successfully");
-  }),
-
-  remove: asyncHandler(async (req, res) => {
-    const { id: branchId, rowId } = req.params;
-    const row = await BranchExtraMonitor.findOne({ where: { id: rowId, branchId } });
-    if (!row) return sendError(res, "Record not found", 404);
-    await row.destroy();
-    return sendSuccess(res, { ok: true }, "Deleted successfully");
-  }),
-};
-function deviceCrud(model) {
+function deviceCrud(model, includeSubCat = false) {
   return {
     list: asyncHandler(async (req, res) => {
       const { id: branchId } = req.params;
-      const rows = await model.findAll({ where: { branchId }, order: [["id", "ASC"]] });
+      const options = {
+        where: { branchId },
+        order: [["id", "ASC"]],
+      };
+      if (includeSubCat) options.include = [makeSubCatInclude()];
+
+      const rows = await model.findAll(options);
       return sendSuccess(res, rows, "Fetched successfully");
     }),
 
@@ -139,8 +114,8 @@ function deviceCrud(model) {
 }
 
 exports.getBranches = asyncHandler(async (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
   const offset = (page - 1) * limit;
 
   const { count, rows } = await Branch.findAndCountAll({
@@ -172,8 +147,24 @@ exports.getBranchById = asyncHandler(async (req, res) => {
         required: false,
       },
       { model: BranchInfra, as: "infra", required: false },
-      { model: BranchConnectivity, as: "connectivity", required: false, include: [makeSubCatInclude()] },
-      { model: BranchUps, as: "ups", required: false, include: [makeSubCatInclude()] },
+      {
+        model: BranchConnectivity,
+        as: "connectivity",
+        required: false,
+        include: [makeSubCatInclude()],
+      },
+      {
+        model: BranchUps,
+        as: "ups",
+        required: false,
+        include: [makeSubCatInclude()],
+      },
+      {
+        model: BranchOnlineConferenceTools,
+        as: "onlineConferenceTools",
+        required: false,
+        include: [makeSubCatInclude()],
+      },
     ],
   });
 
@@ -198,7 +189,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
     ipphones,
     servers,
     firewallRouters,
-    extraAssets,
+    switches,
     extraMonitors,
     applicationSoftware,
     officeSoftware,
@@ -208,8 +199,11 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
     services,
     licenses,
     windowsOS,
+    onlineConferenceTools,
     windowsServers,
     cctvs,
+    connectivity,
+    ups,
   ] = await Promise.all([
     BranchScanner.count({ where: { branchId } }),
     BranchProjector.count({ where: { branchId } }),
@@ -230,8 +224,11 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
     BranchServices.count({ where: { branchId } }),
     BranchLicenses.count({ where: { branchId } }),
     BranchWindowsOS.count({ where: { branchId } }),
+    BranchOnlineConferenceTools.count({ where: { branchId } }),
     BranchWindowsServers.count({ where: { branchId } }),
     BranchCctv.count({ where: { branch_code: branch.branch_code } }),
+    BranchConnectivity.count({ where: { branchId } }),
+    BranchUps.count({ where: { branchId } }),
   ]);
 
   return sendSuccess(
@@ -246,7 +243,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
       ipphones,
       servers,
       firewallRouters,
-      extraAssets,
+      switches,
       extraMonitors,
       applicationSoftware,
       officeSoftware,
@@ -256,8 +253,11 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
       services,
       licenses,
       windowsOS,
+      onlineConferenceTools,
       windowsServers,
       cctvs,
+      connectivity,
+      ups,
     },
     "Asset summary fetched"
   );
@@ -283,8 +283,22 @@ exports.getBranchesWithAssets = asyncHandler(async (req, res) => {
         required: false,
       },
       { model: BranchInfra, as: "infra", required: false },
-      { model: BranchConnectivity, as: "connectivity", required: false, include: [makeSubCatInclude()] },
-      { model: BranchUps, as: "ups", required: false, include: [makeSubCatInclude()] },
+      {
+        model: BranchConnectivity,
+        as: "connectivity",
+        required: false,
+        separate: true,
+        order: [["id", "ASC"]],
+        include: [makeSubCatInclude()],
+      },
+      {
+        model: BranchUps,
+        as: "ups",
+        required: false,
+        separate: true,
+        order: [["id", "ASC"]],
+        include: [makeSubCatInclude()],
+      },
 
       many(BranchScanner, "scanners"),
       many(BranchProjector, "projectors"),
@@ -318,6 +332,7 @@ exports.getBranchesWithAssets = asyncHandler(async (req, res) => {
       many(BranchServices, "services"),
       many(BranchLicenses, "licenses"),
       many(BranchWindowsOS, "windowsOS"),
+      many(BranchOnlineConferenceTools, "onlineConferenceTools"),
       many(BranchWindowsServers, "windowsServers"),
     ],
   });
@@ -395,6 +410,74 @@ exports.updateUps = asyncHandler(async (req, res) => {
   return sendSuccess(res, record, "UPS updated successfully");
 });
 
+exports.connectivity = {
+  list: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const rows = await BranchConnectivity.findAll({
+      where: { branchId },
+      order: [["id", "ASC"]],
+      include: [makeSubCatInclude()],
+    });
+    return sendSuccess(res, rows, "Fetched successfully");
+  }),
+
+  create: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const row = await BranchConnectivity.create({ branchId, ...req.body });
+    return sendSuccess(res, row, "Created successfully", 201);
+  }),
+
+  update: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await BranchConnectivity.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.update(req.body);
+    return sendSuccess(res, row, "Updated successfully");
+  }),
+
+  remove: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await BranchConnectivity.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.destroy();
+    return sendSuccess(res, { ok: true }, "Deleted successfully");
+  }),
+};
+
+exports.ups = {
+  list: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const rows = await BranchUps.findAll({
+      where: { branchId },
+      order: [["id", "ASC"]],
+      include: [makeSubCatInclude()],
+    });
+    return sendSuccess(res, rows, "Fetched successfully");
+  }),
+
+  create: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const row = await BranchUps.create({ branchId, ...req.body });
+    return sendSuccess(res, row, "Created successfully", 201);
+  }),
+
+  update: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await BranchUps.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.update(req.body);
+    return sendSuccess(res, row, "Updated successfully");
+  }),
+
+  remove: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await BranchUps.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.destroy();
+    return sendSuccess(res, { ok: true }, "Deleted successfully");
+  }),
+};
+
 exports.scanners = deviceCrud(BranchScanner);
 exports.projectors = deviceCrud(BranchProjector);
 exports.printers = deviceCrud(BranchPrinter);
@@ -406,6 +489,17 @@ exports.servers = deviceCrud(BranchServer);
 exports.firewallRouters = deviceCrud(BranchFirewallRouter);
 exports.switches = deviceCrud(BranchSwitch);
 exports.extraMonitors = deviceCrud(BranchExtraMonitor);
+
+exports.applicationSoftware = deviceCrud(BranchApplicationSoftware, true);
+exports.officeSoftware = deviceCrud(BranchOfficeSoftware, true);
+exports.securitySoftware = deviceCrud(BranchSecuritySoftware, true);
+exports.securitySoftwareInstalled = deviceCrud(BranchSecuritySoftwareInstalled, true);
+exports.utilitySoftware = deviceCrud(BranchUtilitySoftware, true);
+exports.services = deviceCrud(BranchServices, true);
+exports.licenses = deviceCrud(BranchLicenses, true);
+exports.windowsOS = deviceCrud(BranchWindowsOS, true);
+exports.onlineConferenceTools = deviceCrud(BranchOnlineConferenceTools, true);
+exports.windowsServers = deviceCrud(BranchWindowsServers, true);
 
 exports.cctvs = {
   list: asyncHandler(async (req, res) => {
@@ -497,13 +591,3 @@ exports.cameras = {
     return sendSuccess(res, { ok: true }, "Camera deleted successfully");
   }),
 };
-
-exports.applicationSoftware = deviceCrud(BranchApplicationSoftware);
-exports.officeSoftware = deviceCrud(BranchOfficeSoftware);
-exports.securitySoftware = deviceCrud(BranchSecuritySoftware);
-exports.securitySoftwareInstalled = deviceCrud(BranchSecuritySoftwareInstalled);
-exports.utilitySoftware = deviceCrud(BranchUtilitySoftware);
-exports.services = deviceCrud(BranchServices);
-exports.licenses = deviceCrud(BranchLicenses);
-exports.windowsOS = deviceCrud(BranchWindowsOS);
-exports.windowsServers = deviceCrud(BranchWindowsServers);

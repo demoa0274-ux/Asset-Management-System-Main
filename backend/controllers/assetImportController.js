@@ -1,6 +1,3 @@
-// backend/controllers/assetImportController.js
-// Fully aligned with utils/excelHeaders.js — every case maps exactly to
-// the column headers defined there. No phantom fields, no missing ones.
 const asyncHandler = require("express-async-handler");
 const { sendSuccess, sendError } = require("../utils/response");
 const db = require("../models");
@@ -26,29 +23,33 @@ const {
   BranchServices,
   BranchLicenses,
   BranchWindowsOS,
+  BranchOnlineConferenceTools,
   BranchWindowsServers,
   BranchSwitch,
   BranchExtraMonitor,
+  Branch,
 } = db;
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-const norm      = (v) => String(v ?? "").trim();
+const norm = (v) => String(v ?? "").trim();
 const normLower = (v) => norm(v).toLowerCase();
 
-/** Convert Excel serial date number OR date string → JS Date | null */
 function excelDateToJSDate(serial) {
   if (!serial) return null;
+
   if (typeof serial === "number") {
-    const utc_days  = Math.floor(serial - 25569);
-    const date_info = new Date(utc_days * 86400 * 1000);
-    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate());
+    const utcDays = Math.floor(serial - 25569);
+    const dateInfo = new Date(utcDays * 86400 * 1000);
+    return new Date(dateInfo.getFullYear(), dateInfo.getMonth(), dateInfo.getDate());
   }
+
   const d = new Date(serial);
-  return isNaN(d) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-const toStrOrNull = (v) => { const s = norm(v); return s || null; };
+const toStrOrNull = (v) => {
+  const s = norm(v);
+  return s || null;
+};
 
 const toIntOrNull = (v) => {
   const s = norm(v);
@@ -62,10 +63,22 @@ const toIntOrNullSafe = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
-/**
- * Read a value from an Excel row by trying multiple possible header names.
- * Returns the first match found, or undefined if none match.
- */
+const toYesNoOrNull = (v) => {
+  const s = normLower(v);
+  if (!s) return null;
+  if (["yes", "y", "true", "1"].includes(s)) return "Yes";
+  if (["no", "n", "false", "0"].includes(s)) return "No";
+  return null;
+};
+
+const normalizeLicenseType = (v) => {
+  const s = normLower(v);
+  if (!s) return null;
+  if (["perpetual", "perpectual"].includes(s)) return "Perpetual";
+  if (["subscription", "subcription"].includes(s)) return "Subscription";
+  return toStrOrNull(v);
+};
+
 const getExcel = (row, keys = []) => {
   for (const k of keys) {
     if (row?.[k] !== undefined) return row[k];
@@ -73,393 +86,385 @@ const getExcel = (row, keys = []) => {
   return undefined;
 };
 
-/** Normalise a key to snake_case for attribute look-ups */
 const toSnakeKey = (k) =>
   norm(k)
     .toLowerCase()
-    .replace(/[\s\-]+/g, "_")
+    .replace(/[\s\-\/]+/g, "_")
     .replace(/[^\w]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-/**
- * Back-fill any model attributes not already in payload by reading them
- * directly from the raw Excel row (handles unmapped / extra columns).
- */
 const attachExtrasFromExcel = (Model, excelRow, payload) => {
   if (!Model?.rawAttributes || !excelRow) return payload;
 
-  const deny    = new Set(["id","branchId","createdAt","updatedAt","created_at","updated_at"]);
+  const deny = new Set([
+    "id",
+    "branchId",
+    "branch_code",
+    "cctv_id",
+    "assetId",
+    "createdAt",
+    "updatedAt",
+    "created_at",
+    "updated_at",
+  ]);
+
   const allowed = Object.keys(Model.rawAttributes).filter((k) => !deny.has(k));
   const attrMap = new Map(allowed.map((a) => [toSnakeKey(a), a]));
-
-  if (attrMap.has("assetid") && !attrMap.has("asset_id")) {
-    attrMap.set("asset_id", attrMap.get("assetid"));
-  }
 
   for (const [k, v] of Object.entries(excelRow)) {
     const attr = attrMap.get(toSnakeKey(k));
     if (!attr || payload[attr] !== undefined) continue;
+
     const typeKey = Model.rawAttributes[attr]?.type?.key || "";
-    payload[attr] = typeKey === "INTEGER" ? toIntOrNull(v) : toStrOrNull(v);
+
+    if (["INTEGER", "BIGINT"].includes(typeKey)) {
+      payload[attr] = toIntOrNull(v);
+    } else if (typeKey === "DATEONLY" || typeKey === "DATE") {
+      payload[attr] = excelDateToJSDate(v);
+    } else {
+      payload[attr] = toStrOrNull(v);
+    }
   }
 
   return payload;
 };
 
-// ─── Per-section payload builder ──────────────────────────────────────────────
-// Keys match EXACTLY the column names in EXCEL_HEADERS (utils/excelHeaders.js).
-
 const buildPayloadFromExcelRow = (section, row) => {
   const common = {
     sub_category_code: toStrOrNull(getExcel(row, ["Sub-Cat Code", "sub_category_code"])),
-    remarks:           toStrOrNull(getExcel(row, ["Remarks", "remarks"])),
+    remarks: toStrOrNull(getExcel(row, ["Remarks", "remarks"])),
   };
 
   switch (section) {
-
-    // ── Desktop ──────────────────────────────────────────────────────────────
     case "desktop":
       return {
         ...common,
-        assetId:              toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        desktop_brand:        toStrOrNull(getExcel(row, ["Brand","brand"])),
-        userName:             toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
-        desktop_ids:          toStrOrNull(getExcel(row, ["Desktop ID","desktop_id","desktop_ids"])),
-        desktop_ram:          toStrOrNull(getExcel(row, ["RAM","ram"])),
-        system_model:         toStrOrNull(getExcel(row, ["System Model","system_model"])),
-        desktop_ssd:          toStrOrNull(getExcel(row, ["SSD","ssd"])),
-        desktop_processor:    toStrOrNull(getExcel(row, ["Processor","processor"])),
-        window_version:       toStrOrNull(getExcel(row, ["Windows Version","window_version"])),
-        location:             toStrOrNull(getExcel(row, ["Location","location"])),
-        ip_address:           toStrOrNull(getExcel(row, ["IP Address","ip_address"])),
-        monitor_asset_code:   toStrOrNull(getExcel(row, ["Monitor code","monitor_code","monitor_asset_code"])),
-        monitor_brand:        toStrOrNull(getExcel(row, ["Monitor Brand","monitor_brand"])),
-        monitor_size:         toStrOrNull(getExcel(row, ["Monitor Size","monitor_size"])),
-        monitor_location:     toStrOrNull(getExcel(row, ["Monitor Location","monitor_location"])),
-        window_gen:           toStrOrNull(getExcel(row, ["Windows Gen","window_gen"])),
-        monitor_purchase_year:toIntOrNullSafe(getExcel(row, ["Monitor Purchase Year","monitor_purchase_year"])),
-        monitor_status:       toStrOrNull(getExcel(row, ["Monitor Status","monitor_status"])),
-        status:               toStrOrNull(getExcel(row, ["Status","status"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code", "asset_code", "assetId"])),
+        desktop_brand: toStrOrNull(getExcel(row, ["Brand"])),
+        userName: toStrOrNull(getExcel(row, ["Assigned User"])),
+        desktop_ids: toStrOrNull(getExcel(row, ["Desktop ID"])),
+        desktop_ram: toStrOrNull(getExcel(row, ["RAM"])),
+        system_model: toStrOrNull(getExcel(row, ["System Model"])),
+        desktop_ssd: toStrOrNull(getExcel(row, ["SSD"])),
+        desktop_processor: toStrOrNull(getExcel(row, ["Processor"])),
+        window_version: toStrOrNull(getExcel(row, ["Windows Version"])),
+        monitor_asset_code: toStrOrNull(getExcel(row, ["Monitor code"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        ip_address: toStrOrNull(getExcel(row, ["IP Address"])),
+        monitor_brand: toStrOrNull(getExcel(row, ["Monitor Brand"])),
+        monitor_size: toStrOrNull(getExcel(row, ["Monitor Size"])),
+        monitor_location: toStrOrNull(getExcel(row, ["Monitor Location"])),
+        window_gen: toStrOrNull(getExcel(row, ["Windows Gen"])),
+        monitor_purchase_year: toIntOrNullSafe(getExcel(row, ["Monitor Purchase Year"])),
+        monitor_status: toStrOrNull(getExcel(row, ["Monitor Status"])),
+        status: toStrOrNull(getExcel(row, ["Status"])),
       };
 
-    // ── Laptop ───────────────────────────────────────────────────────────────
     case "laptop":
       return {
         ...common,
-        assetId:          toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        laptop_brand:     toStrOrNull(getExcel(row, ["Brand","brand"])),
-        name:             toStrOrNull(getExcel(row, ["Name","name"])),
-        laptop_user:      toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
-        laptop_ram:       toStrOrNull(getExcel(row, ["RAM","ram"])),
-        laptop_ssd:       toStrOrNull(getExcel(row, ["SSD","ssd"])),
-        laptop_processor: toStrOrNull(getExcel(row, ["Processor","processor"])),
-        location:         toStrOrNull(getExcel(row, ["Location","location"])),
-        ip_address:       toStrOrNull(getExcel(row, ["IP Address","ip_address"])),
-        status:           toStrOrNull(getExcel(row, ["Status","status"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        laptop_brand: toStrOrNull(getExcel(row, ["Brand"])),
+        name: toStrOrNull(getExcel(row, ["Name"])),
+        laptop_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        laptop_ram: toStrOrNull(getExcel(row, ["RAM"])),
+        laptop_ssd: toStrOrNull(getExcel(row, ["SSD"])),
+        laptop_processor: toStrOrNull(getExcel(row, ["Processor"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        ip_address: toStrOrNull(getExcel(row, ["IP Address"])),
+        status: toStrOrNull(getExcel(row, ["Status"])),
       };
 
-    // ── Printer ──────────────────────────────────────────────────────────────
-      case "printer":
-        return {
-          ...common,
-          assetId:        toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-          assigned_user:  toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
-          printer_name:   toStrOrNull(getExcel(row, ["Name","name"])),
-          name:           toStrOrNull(getExcel(row, ["Name","name"])),
-          printer_model:  toStrOrNull(getExcel(row, ["Model","model"])),
-          printer_type:   toStrOrNull(getExcel(row, ["Printer Type","printer_type","type"])),
-          printer_status: toStrOrNull(getExcel(row, ["Status","status"])),
-          location:       toStrOrNull(getExcel(row, ["Location","location"])),
-          ip_address:     toStrOrNull(getExcel(row, ["IP Address","ip_address"])),
-        };
+    case "printer":
+      return {
+        ...common,
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        name: toStrOrNull(getExcel(row, ["Name"])),
+        printer_name: toStrOrNull(getExcel(row, ["Name"])),
+        printer_model: toStrOrNull(getExcel(row, ["Model"])),
+        printer_type: toStrOrNull(getExcel(row, ["Printer Type"])),
+        printer_status: toStrOrNull(getExcel(row, ["Status"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        ip_address: toStrOrNull(getExcel(row, ["IP Address"])),
+      };
 
-    // ── Scanner ──────────────────────────────────────────────────────────────
     case "scanner":
       return {
         ...common,
-        assetId:      toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        scanner_name: toStrOrNull(getExcel(row, ["Name","name","scanner_name"])),
-        scanner_model:toStrOrNull(getExcel(row, ["Model","model","scanner_model"])),
-        location:     toStrOrNull(getExcel(row, ["Location","location"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        scanner_name: toStrOrNull(getExcel(row, ["Name"])),
+        scanner_model: toStrOrNull(getExcel(row, ["Model"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
       };
 
-    // ── Projector ────────────────────────────────────────────────────────────
     case "projector":
       return {
         ...common,
-        assetId:                toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        projector_name:         toStrOrNull(getExcel(row, ["Name","name","projector_name"])),
-        projector_model:        toStrOrNull(getExcel(row, ["Model","model","projector_model"])),
-        projector_status:       toStrOrNull(getExcel(row, ["Status","status","projector_status"])),
-        projector_purchase_date:excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        location:               toStrOrNull(getExcel(row, ["Location","location"])),
-        warranty_years:         toIntOrNullSafe(getExcel(row, ["Warranty Years","warranty_years"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        projector_name: toStrOrNull(getExcel(row, ["Name"])),
+        projector_model: toStrOrNull(getExcel(row, ["Model"])),
+        projector_status: toStrOrNull(getExcel(row, ["Status"])),
+        projector_purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        warranty_years: toIntOrNullSafe(getExcel(row, ["Warranty Years"])),
       };
 
-    // ── Panel ─────────────────────────────────────────────────────────────────
     case "panel":
       return {
         ...common,
-        assetId:            toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        panel_name:         toStrOrNull(getExcel(row, ["Name","name","panel_name"])),
-        panel_brand:        toStrOrNull(getExcel(row, ["Brand","brand","panel_brand"])),
-        panel_user:         toStrOrNull(getExcel(row, ["Assigned User","assigned_user","panel_user"])),
-        panel_ip:           toStrOrNull(getExcel(row, ["IP Address","ip_address","panel_ip"])),
-        panel_status:       toStrOrNull(getExcel(row, ["Status","status","panel_status"])),
-        panel_purchase_year:toIntOrNullSafe(getExcel(row, ["Purchased Year","purchased_year","panel_purchase_year"])),
-        location:           toStrOrNull(getExcel(row, ["Location","location"])),
-        warranty_years:     toIntOrNullSafe(getExcel(row, ["Warranty Years","warranty_years"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        panel_name: toStrOrNull(getExcel(row, ["Name"])),
+        panel_brand: toStrOrNull(getExcel(row, ["Brand"])),
+        panel_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        panel_ip: toStrOrNull(getExcel(row, ["IP Address"])),
+        panel_status: toStrOrNull(getExcel(row, ["Status"])),
+        panel_purchase_year: toIntOrNullSafe(getExcel(row, ["Purchased Year"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        warranty_years: toIntOrNullSafe(getExcel(row, ["Warranty Years"])),
       };
 
-    // ── IP Phone ─────────────────────────────────────────────────────────────
     case "ipphone":
       return {
         ...common,
-        assetId:             toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        ip_telephone_ext_no: toStrOrNull(getExcel(row, ["Extension No","extension_no","ip_telephone_ext_no"])),
-        ip_telephone_ip:     toStrOrNull(getExcel(row, ["IP Address","ip_address","ip_telephone_ip"])),
-        ip_telephone_status: toStrOrNull(getExcel(row, ["Status","status","ip_telephone_status"])),
-        assigned_user:       toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
-        model:               toStrOrNull(getExcel(row, ["Model","model"])),
-        brand:               toStrOrNull(getExcel(row, ["Brand","brand"])),
-        location:            toStrOrNull(getExcel(row, ["Location","location"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        ip_telephone_ext_no: toStrOrNull(getExcel(row, ["Extension No"])),
+        ip_telephone_ip: toStrOrNull(getExcel(row, ["IP Address"])),
+        ip_telephone_status: toStrOrNull(getExcel(row, ["Status"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        model: toStrOrNull(getExcel(row, ["Model"])),
+        brand: toStrOrNull(getExcel(row, ["Brand"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
       };
 
-    // ── CCTV ─────────────────────────────────────────────────────────────────
     case "cctv":
       return {
         ...common,
-        assetId:         toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        cctv_brand:      toStrOrNull(getExcel(row, ["Brand","brand","cctv_brand"])),
-        cctv_nvr_ip:     toStrOrNull(getExcel(row, ["NVR IP","nvr_ip","cctv_nvr_ip"])),
-        cctv_record_days:toIntOrNullSafe(getExcel(row, ["Record Days","record_days","cctv_record_days"])),
-        capacity:        toStrOrNull(getExcel(row, ["Capacity","capacity"])),
-        channel:         toIntOrNullSafe(getExcel(row, ["Channel","channel"])),
-        vendor:          toStrOrNull(getExcel(row, ["Vendor","vendor"])),
-        purchase_date:   excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        cctv_brand: toStrOrNull(getExcel(row, ["Brand"])),
+        cctv_nvr_ip: toStrOrNull(getExcel(row, ["NVR IP"])),
+        cctv_record_days: toIntOrNullSafe(getExcel(row, ["Record Days"])),
+        capacity: toStrOrNull(getExcel(row, ["Capacity"])),
+        channel: toIntOrNullSafe(getExcel(row, ["Channel"])),
+        vendor: toStrOrNull(getExcel(row, ["Vendor"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
       };
 
-    // ── Connectivity (single) ─────────────────────────────────────────────────
     case "connectivity":
       return {
         ...common,
-        connectivity_status:  toStrOrNull(getExcel(row, ["Status","status","connectivity_status"])),
-        connectivity_network: toStrOrNull(getExcel(row, ["Network","network","connectivity_network"])),
-        connectivity_lan_ip:  toStrOrNull(getExcel(row, ["LAN IP","lan_ip","connectivity_lan_ip"])),
-        connectivity_wlink:   toStrOrNull(getExcel(row, ["WAN Link","wan_link","connectivity_wlink"])),
-        installed_year:       toIntOrNullSafe(getExcel(row, ["Installed Year","installed_year"])),
-        location:             toStrOrNull(getExcel(row, ["Location","location"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        connectivity_status: toStrOrNull(getExcel(row, ["Status"])),
+        connectivity_network: toStrOrNull(getExcel(row, ["Network"])),
+        connectivity_lan_ip: toStrOrNull(getExcel(row, ["LAN IP"])),
+        connectivity_wlink: toStrOrNull(getExcel(row, ["WAN Link"])),
+        connectivity_lan_switch: toStrOrNull(getExcel(row, ["LAN Switch"])),
+        connectivity_wifi: toStrOrNull(getExcel(row, ["WiFi"])),
+        installed_year: toIntOrNullSafe(getExcel(row, ["Installed Year"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
       };
 
-    // ── UPS (single) ─────────────────────────────────────────────────────────
     case "ups":
       return {
         ...common,
-        ups_model:        toStrOrNull(getExcel(row, ["Model","model","ups_model"])),
-        ups_backup_time:  toStrOrNull(getExcel(row, ["Backup Time","backup_time","ups_backup_time"])),
-        ups_installer:    toStrOrNull(getExcel(row, ["Installer","installer","ups_installer"])),
-        ups_rating:       toStrOrNull(getExcel(row, ["Rating","rating","ups_rating"])),
-        battery_rating:   toStrOrNull(getExcel(row, ["Battery Rating","battery_rating"])),
-        ups_purchase_year:toIntOrNullSafe(getExcel(row, ["Purchased Year","purchased_year","ups_purchase_year"])),
-        ups_status:       toStrOrNull(getExcel(row, ["Status","status","ups_status"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        ups_model: toStrOrNull(getExcel(row, ["Model"])),
+        ups_backup_time: toStrOrNull(getExcel(row, ["Backup Time"])),
+        ups_installer: toStrOrNull(getExcel(row, ["Installer"])),
+        ups_rating: toStrOrNull(getExcel(row, ["Rating"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        name: toStrOrNull(getExcel(row, ["Name"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        ip_address: toStrOrNull(getExcel(row, ["IP Address"])),
+        ups_status: toStrOrNull(getExcel(row, ["Status"])),
       };
 
-    // ── Server ───────────────────────────────────────────────────────────────
     case "server":
       return {
         ...common,
-        brand:                  toStrOrNull(getExcel(row, ["Brand","brand"])),
-        ip_address:             toStrOrNull(getExcel(row, ["IP Address","ip_address"])),
-        location:               toStrOrNull(getExcel(row, ["Location","location"])),
-        model_no:               toStrOrNull(getExcel(row, ["Model No","model_no","model"])),
-        purchase_date:          excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        vendor:                 toStrOrNull(getExcel(row, ["Vendor","vendor"])),
-        specification:          toStrOrNull(getExcel(row, ["Specification","specification"])),
-        storage:                toStrOrNull(getExcel(row, ["Storage","storage"])),
-        memory:                 toStrOrNull(getExcel(row, ["Memory","memory"])),
-        windows_server_version: toStrOrNull(getExcel(row, ["Window Server Version","windows_server_version"])),
-        virtualization:         toStrOrNull(getExcel(row, ["Virtualization","virtualization"])),
-        how_many_server:        toIntOrNull(getExcel(row, ["How Many Server","how_many_server"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        brand: toStrOrNull(getExcel(row, ["Brand"])),
+        ip_address: toStrOrNull(getExcel(row, ["IP Address"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        model_no: toStrOrNull(getExcel(row, ["Model No"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        vendor: toStrOrNull(getExcel(row, ["Vendor"])),
+        specification: toStrOrNull(getExcel(row, ["Specification"])),
+        storage: toStrOrNull(getExcel(row, ["Storage"])),
+        memory: toStrOrNull(getExcel(row, ["Memory"])),
+        windows_server_version: toStrOrNull(getExcel(row, ["Window Server Version"])),
+        virtualization: toYesNoOrNull(getExcel(row, ["Virtualization"])),
       };
 
-    // ── Firewall / Router ─────────────────────────────────────────────────────
     case "firewall_router":
     case "firewall-routers":
     case "firewallrouters":
       return {
         ...common,
-        brand:                 toStrOrNull(getExcel(row, ["Brand","brand"])),
-        model:                 toStrOrNull(getExcel(row, ["Model","model"])),
-        purchase_date:         excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        vendor:                toStrOrNull(getExcel(row, ["Vendor","vendor"])),
-        license_expiry:        excelDateToJSDate(getExcel(row, ["Liscence-expiry","License Expiry","license_expiry"])),
-        specification_remarks: toStrOrNull(getExcel(row, ["Specification/Remarks","specification_remarks","Specification"])),
+        brand: toStrOrNull(getExcel(row, ["Brand"])),
+        model: toStrOrNull(getExcel(row, ["Model"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        vendor: toStrOrNull(getExcel(row, ["Vendor"])),
+        license_expiry: excelDateToJSDate(getExcel(row, ["Liscence-expiry", "License Expiry"])),
       };
 
-    // ── Switch ────────────────────────────────────────────────────────────────
     case "switch":
       return {
         ...common,
-        assetId:       toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        asset_name:    toStrOrNull(getExcel(row, ["Asset Name","asset_name","Name","name"])),
-        model:         toStrOrNull(getExcel(row, ["Model","model"])),
-        type:          toStrOrNull(getExcel(row, ["Type","type"])),
-        brand:         toStrOrNull(getExcel(row, ["Brand","brand"])),
-        location:      toStrOrNull(getExcel(row, ["Location","location"])),
-        port:          toStrOrNull(getExcel(row, ["Port","port"])),
-        assigned_user: toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        asset_name: toStrOrNull(getExcel(row, ["Asset Name"])),
+        model: toStrOrNull(getExcel(row, ["Model"])),
+        type: toStrOrNull(getExcel(row, ["Type"])),
+        brand: toStrOrNull(getExcel(row, ["Brand"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+        port: toStrOrNull(getExcel(row, ["Port"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
       };
 
-    // ── Extra Monitor ─────────────────────────────────────────────────────────
     case "extra_monitor":
     case "extramonitor":
     case "extra-monitor":
     case "extra_monitors":
       return {
         ...common,
-        assetId:              toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        monitor_name:         toStrOrNull(getExcel(row, ["Monitor Name","monitor_name"])),
-        monitor_brand:        toStrOrNull(getExcel(row, ["Monitor Brand","monitor_brand"])),
-        monitor_size:         toStrOrNull(getExcel(row, ["Monitor Size","monitor_size"])),
-        monitor_location:     toStrOrNull(getExcel(row, ["Monitor Location","monitor_location"])),
-        // monitor_purchase_year:toIntOrNullSafe(getExcel(row, ["Monitor Purchase Year","monitor_purchase_year"])),
-        monitor_status:       toStrOrNull(getExcel(row, ["Monitor Status","monitor_status"])),
-        system_model:         toStrOrNull(getExcel(row, ["System Model","system_model"])),
-        assigned_user:        toStrOrNull(getExcel(row, ["Assigned User","assigned_user"])),
+        assetId: toStrOrNull(getExcel(row, ["Asset Code"])),
+        monitor_brand: toStrOrNull(getExcel(row, ["Monitor Brand"])),
+        monitor_size: toStrOrNull(getExcel(row, ["Monitor Size"])),
+        monitor_location: toStrOrNull(getExcel(row, ["Monitor Location"])),
+        monitor_status: toStrOrNull(getExcel(row, ["Monitor Status"])),
+        system_model: toStrOrNull(getExcel(row, ["System Model"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
       };
 
-    // ── Application Software ──────────────────────────────────────────────────
     case "application_software":
       return {
         ...common,
-        assetId:          toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        software_name:    toStrOrNull(getExcel(row, ["Name","name","software_name"])),
-        software_category:toStrOrNull(getExcel(row, ["Category","category","software_category"])),
-        version:          toStrOrNull(getExcel(row, ["Version","version"])),
-        vendor_name:      toStrOrNull(getExcel(row, ["Vendor","vendor","vendor_name"])),
-        license_type:     toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        license_key:      toStrOrNull(getExcel(row, ["License Key","license_key"])),
-        quantity:         toIntOrNull(getExcel(row, ["Quantity","quantity"])),
-        purchase_date:    excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        expiry_date:      excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
-        assigned_to:      toStrOrNull(getExcel(row, ["Assigned To","assigned_to"])),
+        software_name: toStrOrNull(getExcel(row, ["Name"])),
+        software_category: toStrOrNull(getExcel(row, ["Category"])),
+        version: toStrOrNull(getExcel(row, ["Version"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        quantity: toIntOrNull(getExcel(row, ["Quantity"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
+        assigned_to: toStrOrNull(getExcel(row, ["Assigned To"])),
       };
 
-    // ── Office Software ───────────────────────────────────────────────────────
     case "office_software":
       return {
         ...common,
-        assetId:          toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        software_name:    toStrOrNull(getExcel(row, ["Name","name","software_name"])),
-        software_category:toStrOrNull(getExcel(row, ["Category","category","software_category"])),
-        version:          toStrOrNull(getExcel(row, ["Version","version"])),
-        vendor_name:      toStrOrNull(getExcel(row, ["Vendor","vendor","vendor_name"])),
-        installed_on:     toStrOrNull(getExcel(row, ["Installed On","installed_on"])),
-        pc_name:          toStrOrNull(getExcel(row, ["PC Name","pc_name"])),
-        installed_by:     toStrOrNull(getExcel(row, ["Installed By","installed_by"])),
-        install_date:     excelDateToJSDate(getExcel(row, ["Install Date","install_date"])),
-        license_type:     toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        license_key:      toStrOrNull(getExcel(row, ["License Key","license_key"])),
-        quantity:         toIntOrNull(getExcel(row, ["Quantity","quantity"])),
-        purchase_date:    excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        expiry_date:      excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
-        assigned_to:      toStrOrNull(getExcel(row, ["Assigned To","assigned_to"])),
+        software_name: toStrOrNull(getExcel(row, ["Name"])),
+        software_category: toStrOrNull(getExcel(row, ["Category"])),
+        version: toStrOrNull(getExcel(row, ["Version"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        installed_on: toStrOrNull(getExcel(row, ["Installed On"])),
+        pc_name: toStrOrNull(getExcel(row, ["PC Name"])),
+        installed_by: toStrOrNull(getExcel(row, ["Installed By"])),
+        install_date: excelDateToJSDate(getExcel(row, ["Install Date"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        quantity: toIntOrNull(getExcel(row, ["Quantity"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
+        assigned_to: toStrOrNull(getExcel(row, ["Assigned To"])),
       };
 
-    // ── Utility Software ──────────────────────────────────────────────────────
     case "utility_software":
       return {
         ...common,
-        assetId:      toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        software_name:toStrOrNull(getExcel(row, ["Name","name","software_name"])),
-        version:      toStrOrNull(getExcel(row, ["Version","version"])),
-        category:     toStrOrNull(getExcel(row, ["Category","category"])),
-        pc_name:      toStrOrNull(getExcel(row, ["PC Name","pc_name"])),
-        installed_by: toStrOrNull(getExcel(row, ["Installed By","installed_by"])),
-        install_date: excelDateToJSDate(getExcel(row, ["Install Date","install_date"])),
+        software_name: toStrOrNull(getExcel(row, ["Name"])),
+        version: toStrOrNull(getExcel(row, ["Version"])),
+        category: toStrOrNull(getExcel(row, ["Category"])),
+        pc_name: toStrOrNull(getExcel(row, ["PC Name"])),
+        installed_by: toStrOrNull(getExcel(row, ["Installed By"])),
+        install_date: excelDateToJSDate(getExcel(row, ["Install Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
-    // ── Security Software ─────────────────────────────────────────────────────
     case "security_software":
       return {
         ...common,
-        assetId:      toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        product_name: toStrOrNull(getExcel(row, ["Name","name","product_name"])),
-        vendor_name:  toStrOrNull(getExcel(row, ["Vendor","vendor","vendor_name"])),
-        license_type: toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        total_nodes:  toIntOrNull(getExcel(row, ["Total Nodes","total_nodes"])),
-        expiry_date:  excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
+        product_name: toStrOrNull(getExcel(row, ["Name"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        total_nodes: toIntOrNull(getExcel(row, ["Total Nodes"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
-    // ── Security Software Installed ───────────────────────────────────────────
     case "security_software_installed":
       return {
         ...common,
-        assetId:             toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        product_name:        toStrOrNull(getExcel(row, ["Name","name","product_name"])),
-        version:             toStrOrNull(getExcel(row, ["Version","version"])),
-        pc_name:             toStrOrNull(getExcel(row, ["PC Name","pc_name"])),
-        real_time_protection:toStrOrNull(getExcel(row, ["Real Time Protection","real_time_protection"])),
-        last_update_date:    excelDateToJSDate(getExcel(row, ["Last Update Date","last_update_date"])),
-        installed_by:        toStrOrNull(getExcel(row, ["Installed By","installed_by"])),
+        product_name: toStrOrNull(getExcel(row, ["Name"])),
+        version: toStrOrNull(getExcel(row, ["Version"])),
+        pc_name: toStrOrNull(getExcel(row, ["PC Name"])),
+        real_time_protection: toStrOrNull(getExcel(row, ["Real Time Protection"])),
+        last_update_date: excelDateToJSDate(getExcel(row, ["Last Update Date"])),
+        installed_by: toStrOrNull(getExcel(row, ["Installed By"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
-    // ── Services ──────────────────────────────────────────────────────────────
     case "services":
       return {
         ...common,
-        assetId:          toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        service_name:     toStrOrNull(getExcel(row, ["Name","name","service_name"])),
-        service_category: toStrOrNull(getExcel(row, ["Category","category","service_category"])),
-        provider_name:    toStrOrNull(getExcel(row, ["Provider","provider","provider_name"])),
-        contract_no:      toStrOrNull(getExcel(row, ["Contract No","contract_no"])),
-        provider_contact: toStrOrNull(getExcel(row, ["Provider Contact","provider_contact"])),
-        start_date:       excelDateToJSDate(getExcel(row, ["Start Date","start_date"])),
-        expiry_date:      excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
+        service_name: toStrOrNull(getExcel(row, ["Name"])),
+        service_category: toStrOrNull(getExcel(row, ["Category"])),
+        provider_name: toStrOrNull(getExcel(row, ["Provider"])),
+        contract_no: toStrOrNull(getExcel(row, ["Contract No"])),
+        provider_contact: toStrOrNull(getExcel(row, ["Provider Contact"])),
+        start_date: excelDateToJSDate(getExcel(row, ["Start Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
-    // ── Licenses ──────────────────────────────────────────────────────────────
     case "licenses":
       return {
         ...common,
-        assetId:      toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        license_name: toStrOrNull(getExcel(row, ["Name","name","license_name"])),
-        license_type: toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        license_key:  toStrOrNull(getExcel(row, ["License Key","license_key"])),
-        quantity:     toIntOrNull(getExcel(row, ["Quantity","quantity"])),
-        vendor_name:  toStrOrNull(getExcel(row, ["Vendor","vendor","vendor_name"])),
-        purchase_date:excelDateToJSDate(getExcel(row, ["Purchase Date","purchase_date"])),
-        expiry_date:  excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
-        assigned_to:  toStrOrNull(getExcel(row, ["Assigned To","assigned_to"])),
+        license_name: toStrOrNull(getExcel(row, ["Name"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        quantity: toIntOrNull(getExcel(row, ["Quantity"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
+        assigned_to: toStrOrNull(getExcel(row, ["Assigned To"])),
       };
 
-    // ── Windows OS ────────────────────────────────────────────────────────────
     case "windows_os":
       return {
         ...common,
-        assetId:           toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        device_type:       toStrOrNull(getExcel(row, ["Device Type","device_type"])),
-        device_asset_id:   toStrOrNull(getExcel(row, ["Device Asset Code","device_asset_code","device_asset_id"])),
-        os_version:        toStrOrNull(getExcel(row, ["OS Version","os_version"])),
-        license_type:      toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        license_key:       toStrOrNull(getExcel(row, ["License Key","license_key"])),
-        activation_status: toStrOrNull(getExcel(row, ["Activation Status","activation_status"])),
-        installed_date:    excelDateToJSDate(getExcel(row, ["Installed Date","installed_date"])),
+        os_version: toStrOrNull(getExcel(row, ["OS Version"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        activation_status: toStrOrNull(getExcel(row, ["Activation Status"])),
+        installed_date: excelDateToJSDate(getExcel(row, ["Installed Date"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
-    // ── Windows Servers ───────────────────────────────────────────────────────
+    case "online_conference_tools":
+      return {
+        ...common,
+        tool_name: toStrOrNull(getExcel(row, ["Name"])),
+        vendor_name: toStrOrNull(getExcel(row, ["Vendor"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        no_of_users: toIntOrNull(getExcel(row, ["No of Users", "No Of Users"])),
+        purchase_date: excelDateToJSDate(getExcel(row, ["Purchase Date"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
+      };
+
     case "windows_servers":
       return {
         ...common,
-        assetId:        toStrOrNull(getExcel(row, ["Asset Code","asset_code","assetId"])),
-        server_name:    toStrOrNull(getExcel(row, ["Server Name","server_name"])),
-        server_role:    toStrOrNull(getExcel(row, ["Server Role","server_role"])),
-        os_version:     toStrOrNull(getExcel(row, ["OS Version","os_version"])),
-        license_type:   toStrOrNull(getExcel(row, ["License Type","license_type"])),
-        license_key:    toStrOrNull(getExcel(row, ["License Key","license_key"])),
-        cores_licensed: toIntOrNull(getExcel(row, ["Cores Licensed","cores_licensed"])),
-        expiry_date:    excelDateToJSDate(getExcel(row, ["Expiry Date","expiry_date"])),
+        server_name: toStrOrNull(getExcel(row, ["Server Name"])),
+        server_role: toStrOrNull(getExcel(row, ["Server Role"])),
+        os_version: toStrOrNull(getExcel(row, ["OS Version"])),
+        license_type: normalizeLicenseType(getExcel(row, ["License Type"])),
+        license_key: toStrOrNull(getExcel(row, ["License Key"])),
+        cores_licensed: toIntOrNull(getExcel(row, ["Cores Licensed"])),
+        expiry_date: excelDateToJSDate(getExcel(row, ["Expiry Date"])),
       };
 
     default:
@@ -467,50 +472,42 @@ const buildPayloadFromExcelRow = (section, row) => {
   }
 };
 
-// ─── Section → model map ──────────────────────────────────────────────────────
-
 const sectionMap = {
-  desktop:                   { type: "multi",  model: BranchDesktop },
-  laptop:                    { type: "multi",  model: BranchLaptop },
-  printer:                   { type: "multi",  model: BranchPrinter },
-  scanner:                   { type: "multi",  model: BranchScanner },
-  projector:                 { type: "multi",  model: BranchProjector },
-  panel:                     { type: "multi",  model: BranchPanel },
-  ipphone:                   { type: "multi",  model: BranchIpPhone },
-  cctv:                      { type: "multi",  model: BranchCctv },
-  server:                    { type: "multi",  model: BranchServer },
-  firewall_router:           { type: "multi",  model: BranchFirewallRouter },
-  "firewall-routers":        { type: "multi",  model: BranchFirewallRouter },
-  firewallrouters:           { type: "multi",  model: BranchFirewallRouter },
-  switch:                    { type: "multi",  model: BranchSwitch },
-  extra_monitor:             { type: "multi",  model: BranchExtraMonitor },
-  extramonitor:              { type: "multi",  model: BranchExtraMonitor },
-  "extra-monitor":           { type: "multi",  model: BranchExtraMonitor },
-  extra_monitors:            { type: "multi",  model: BranchExtraMonitor },
-  connectivity:              { type: "single", model: BranchConnectivity },
-  ups:                       { type: "single", model: BranchUps },
-  application_software:      { type: "multi",  model: BranchApplicationSoftware },
-  office_software:           { type: "multi",  model: BranchOfficeSoftware },
-  utility_software:          { type: "multi",  model: BranchUtilitySoftware },
-  security_software:         { type: "multi",  model: BranchSecuritySoftware },
-  security_software_installed:{ type: "multi", model: BranchSecuritySoftwareInstalled },
-  services:                  { type: "multi",  model: BranchServices },
-  licenses:                  { type: "multi",  model: BranchLicenses },
-  windows_os:                { type: "multi",  model: BranchWindowsOS },
-  windows_servers:           { type: "multi",  model: BranchWindowsServers },
-};
+  desktop: { type: "multi", model: BranchDesktop, usesAssetId: true },
+  laptop: { type: "multi", model: BranchLaptop, usesAssetId: true },
+  printer: { type: "multi", model: BranchPrinter, usesAssetId: true },
+  scanner: { type: "multi", model: BranchScanner, usesAssetId: true },
+  projector: { type: "multi", model: BranchProjector, usesAssetId: true },
+  panel: { type: "multi", model: BranchPanel, usesAssetId: true },
+  ipphone: { type: "multi", model: BranchIpPhone, usesAssetId: true },
+  cctv: { type: "multi", model: BranchCctv, usesAssetId: true },
+  server: { type: "multi", model: BranchServer, usesAssetId: true },
+  firewall_router: { type: "multi", model: BranchFirewallRouter, usesAssetId: false },
+  "firewall-routers": { type: "multi", model: BranchFirewallRouter, usesAssetId: false },
+  firewallrouters: { type: "multi", model: BranchFirewallRouter, usesAssetId: false },
+  switch: { type: "multi", model: BranchSwitch, usesAssetId: true },
+  extra_monitor: { type: "multi", model: BranchExtraMonitor, usesAssetId: true },
+  extramonitor: { type: "multi", model: BranchExtraMonitor, usesAssetId: true },
+  "extra-monitor": { type: "multi", model: BranchExtraMonitor, usesAssetId: true },
+  extra_monitors: { type: "multi", model: BranchExtraMonitor, usesAssetId: true },
+  connectivity: { type: "multi", model: BranchConnectivity, usesAssetId: true },
+  ups: { type: "multi", model: BranchUps, usesAssetId: true },
 
-const updateOrCreateSingle = async (Model, branchId, payload, t) => {
-  let rec = await Model.findOne({ where: { branchId }, transaction: t });
-  if (!rec) rec = await Model.create({ branchId }, { transaction: t });
-  await rec.update(payload, { transaction: t });
-  return rec;
+  application_software: { type: "multi", model: BranchApplicationSoftware, usesAssetId: false },
+  office_software: { type: "multi", model: BranchOfficeSoftware, usesAssetId: false },
+  utility_software: { type: "multi", model: BranchUtilitySoftware, usesAssetId: false },
+  security_software: { type: "multi", model: BranchSecuritySoftware, usesAssetId: false },
+  security_software_installed: { type: "multi", model: BranchSecuritySoftwareInstalled, usesAssetId: false },
+  services: { type: "multi", model: BranchServices, usesAssetId: false },
+  licenses: { type: "multi", model: BranchLicenses, usesAssetId: false },
+  windows_os: { type: "multi", model: BranchWindowsOS, usesAssetId: false },
+  online_conference_tools: { type: "multi", model: BranchOnlineConferenceTools, usesAssetId: false },
+  windows_servers: { type: "multi", model: BranchWindowsServers, usesAssetId: false },
 };
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
 
 exports.importAssets = asyncHandler(async (req, res) => {
   const rows = req.body?.rows;
+
   if (!Array.isArray(rows) || rows.length === 0) {
     return sendError(res, "rows[] is required", 400);
   }
@@ -518,10 +515,10 @@ exports.importAssets = asyncHandler(async (req, res) => {
   const result = { inserted: 0, updated: 0, failed: 0, errors: [] };
 
   for (let i = 0; i < rows.length; i++) {
-    const item  = rows[i];
+    const item = rows[i];
     const rowNo = item?.rowNo ?? i + 1;
 
-    const section  = normLower(item?.section);
+    const section = normLower(item?.section);
     const branchId = toIntOrNull(item?.branchId);
     const excelRow = item?.excelRow || item?.data || item;
 
@@ -538,14 +535,12 @@ exports.importAssets = asyncHandler(async (req, res) => {
       continue;
     }
 
-    const identifierRaw =
-      getExcel(excelRow, ["Asset Code","Asset ID","assetId","asset_id","AssetID"]) ||
-      getExcel(excelRow, ["Desktop ID","desktop_id","desktop_ids"]) ||
-      item?.assetId ||
-      item?.id;
+    const identifierRaw = cfg.usesAssetId
+      ? getExcel(excelRow, ["Asset Code", "Asset ID", "assetId", "asset_id", "AssetID"]) || item?.assetId || null
+      : null;
 
-    const numericId    = toIntOrNull(identifierRaw);
-    const stringAssetId = toStrOrNull(identifierRaw);
+    const numericId = cfg.usesAssetId ? toIntOrNull(identifierRaw) : null;
+    const stringAssetId = cfg.usesAssetId ? toStrOrNull(identifierRaw) : null;
 
     let payload =
       item?.payload && typeof item.payload === "object"
@@ -553,32 +548,34 @@ exports.importAssets = asyncHandler(async (req, res) => {
         : buildPayloadFromExcelRow(section, excelRow);
 
     payload = attachExtrasFromExcel(cfg.model, excelRow, payload);
-
     const t = await db.sequelize.transaction();
 
     try {
-      if (cfg.type === "single") {
-        await updateOrCreateSingle(cfg.model, branchId, payload, t);
-        result.updated++;
-        await t.commit();
-        continue;
-      }
+      payload.branchId = branchId;
 
       let whereCondition = {};
       let rec = null;
 
       if (section === "cctv") {
-        const branch = await db.Branch.findByPk(branchId, { transaction: t });
+        const branch = await Branch.findByPk(branchId, { transaction: t });
         if (!branch) throw new Error("Branch not found");
-        payload.branch_code = branch.branch_code;
 
-        if (numericId)      whereCondition = { cctv_id: numericId, branch_code: branch.branch_code };
-        else if (stringAssetId) whereCondition = { assetId: stringAssetId, branch_code: branch.branch_code };
-      } else {
-        payload.branchId = branchId;
-
-        if (numericId)      whereCondition = { id: numericId, branchId };
-        else if (stringAssetId) whereCondition = { assetId: stringAssetId, branchId };
+        if (numericId) {
+          whereCondition = { cctv_id: numericId, branchId };
+        } else if (stringAssetId) {
+          whereCondition = { assetId: stringAssetId, branchId };
+        }
+      } else if (section === "online_conference_tools") {
+        const toolName = payload.tool_name || toStrOrNull(getExcel(excelRow, ["Name"]));
+        if (toolName) {
+          whereCondition = { branchId, tool_name: toolName };
+        }
+      } else if (cfg.usesAssetId) {
+        if (numericId) {
+          whereCondition = { id: numericId, branchId };
+        } else if (stringAssetId) {
+          whereCondition = { assetId: stringAssetId, branchId };
+        }
       }
 
       if (Object.keys(whereCondition).length) {
@@ -589,7 +586,9 @@ exports.importAssets = asyncHandler(async (req, res) => {
         await rec.update(payload, { transaction: t });
         result.updated++;
       } else {
-        if (stringAssetId) payload.assetId = stringAssetId;
+        if (cfg.usesAssetId && stringAssetId) {
+          payload.assetId = stringAssetId;
+        }
         await cfg.model.create(payload, { transaction: t });
         result.inserted++;
       }
@@ -598,20 +597,7 @@ exports.importAssets = asyncHandler(async (req, res) => {
     } catch (rowErr) {
       await t.rollback();
       result.failed++;
-      console.error(`❌ Row ${rowNo} failed:`, rowErr?.message || rowErr);
-
-      const entry = { rowNo, message: rowErr?.message || "Row import failed" };
-      if (
-        rowErr?.name === "SequelizeValidationError" ||
-        rowErr?.name === "SequelizeUniqueConstraintError"
-      ) {
-        entry.errors = (rowErr.errors || []).map((e) => ({
-          message: e.message,
-          path:    e.path,
-          value:   e.value,
-        }));
-      }
-      result.errors.push(entry);
+      result.errors.push({ rowNo, message: rowErr?.message || "Row import failed" });
     }
   }
 
