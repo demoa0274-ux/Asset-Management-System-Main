@@ -12,6 +12,7 @@ const {
   BranchInfra,
   BranchConnectivity,
   BranchUps,
+  Inverter,
   BranchScanner,
   BranchProjector,
   BranchPrinter,
@@ -160,6 +161,12 @@ exports.getBranchById = asyncHandler(async (req, res) => {
         include: [makeSubCatInclude()],
       },
       {
+        model: Inverter,
+        as: "inverters",
+        required: false,
+        include: [makeSubCatInclude()],
+      },
+      {
         model: BranchOnlineConferenceTools,
         as: "onlineConferenceTools",
         required: false,
@@ -204,6 +211,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
     cctvs,
     connectivity,
     ups,
+    inverters,
   ] = await Promise.all([
     BranchScanner.count({ where: { branchId } }),
     BranchProjector.count({ where: { branchId } }),
@@ -229,6 +237,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
     BranchCctv.count({ where: { branch_code: branch.branch_code } }),
     BranchConnectivity.count({ where: { branchId } }),
     BranchUps.count({ where: { branchId } }),
+    Inverter.count({ where: { branchId } }),
   ]);
 
   return sendSuccess(
@@ -258,6 +267,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
       cctvs,
       connectivity,
       ups,
+      inverters,
     },
     "Asset summary fetched"
   );
@@ -294,6 +304,14 @@ exports.getBranchesWithAssets = asyncHandler(async (req, res) => {
       {
         model: BranchUps,
         as: "ups",
+        required: false,
+        separate: true,
+        order: [["id", "ASC"]],
+        include: [makeSubCatInclude()],
+      },
+      {
+        model: Inverter,
+        as: "inverters",
         required: false,
         separate: true,
         order: [["id", "ASC"]],
@@ -410,6 +428,11 @@ exports.updateUps = asyncHandler(async (req, res) => {
   return sendSuccess(res, record, "UPS updated successfully");
 });
 
+exports.updateInverter = asyncHandler(async (req, res) => {
+  const record = await updateOrCreate(Inverter, req.params.id, req.body);
+  return sendSuccess(res, record, "Inverter updated successfully");
+});
+
 exports.connectivity = {
   list: asyncHandler(async (req, res) => {
     const { id: branchId } = req.params;
@@ -472,6 +495,40 @@ exports.ups = {
   remove: asyncHandler(async (req, res) => {
     const { id: branchId, rowId } = req.params;
     const row = await BranchUps.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.destroy();
+    return sendSuccess(res, { ok: true }, "Deleted successfully");
+  }),
+};
+
+exports.inverters = {
+  list: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const rows = await Inverter.findAll({
+      where: { branchId },
+      order: [["id", "ASC"]],
+      include: [makeSubCatInclude()],
+    });
+    return sendSuccess(res, rows, "Fetched successfully");
+  }),
+
+  create: asyncHandler(async (req, res) => {
+    const { id: branchId } = req.params;
+    const row = await Inverter.create({ branchId, ...req.body });
+    return sendSuccess(res, row, "Created successfully", 201);
+  }),
+
+  update: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await Inverter.findOne({ where: { id: rowId, branchId } });
+    if (!row) return sendError(res, "Record not found", 404);
+    await row.update(req.body);
+    return sendSuccess(res, row, "Updated successfully");
+  }),
+
+  remove: asyncHandler(async (req, res) => {
+    const { id: branchId, rowId } = req.params;
+    const row = await Inverter.findOne({ where: { id: rowId, branchId } });
     if (!row) return sendError(res, "Record not found", 404);
     await row.destroy();
     return sendSuccess(res, { ok: true }, "Deleted successfully");

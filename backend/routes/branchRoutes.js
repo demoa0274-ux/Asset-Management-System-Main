@@ -37,6 +37,15 @@ router.delete("/:id/ups/:rowId", protect, adminOrSubadmin, branchController.ups.
 // legacy
 router.put("/:id/ups", protect, adminOrSubadmin, branchController.updateUps);
 
+// Inverter
+router.get("/:id/inverters", protect, branchController.inverters.list);
+router.post("/:id/inverters", protect, adminOrSubadmin, branchController.inverters.create);
+router.put("/:id/inverters/:rowId", protect, adminOrSubadmin, branchController.inverters.update);
+router.delete("/:id/inverters/:rowId", protect, adminOrSubadmin, branchController.inverters.remove);
+
+// legacy
+router.put("/:id/inverters", protect, adminOrSubadmin, branchController.updateInverter);
+
 router.get("/:id/scanners", protect, branchController.scanners.list);
 router.post("/:id/scanners", protect, adminOrSubadmin, branchController.scanners.create);
 router.put("/:id/scanners/:rowId", protect, adminOrSubadmin, branchController.scanners.update);

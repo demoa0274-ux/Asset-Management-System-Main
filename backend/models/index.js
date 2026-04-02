@@ -16,7 +16,7 @@ const Request = require("./Request");
 const SupportTicket = require("./SupportTicket");
 
 const Branch = require("./Branch");
-const BranchUps = require("./BranchUps");
+const { BranchUps, Inverter } = require("./BranchUps");
 const BranchConnectivity = require("./BranchConnectivity");
 
 const {
@@ -90,6 +90,7 @@ const db = {
   BranchInfra,
   BranchConnectivity,
   BranchUps,
+  Inverter,
 
   BranchScanner,
   BranchProjector,
@@ -137,6 +138,11 @@ if (Branch && BranchConnectivity && !Branch.associations?.connectivity) {
 if (Branch && BranchUps && !Branch.associations?.ups) {
   Branch.hasMany(BranchUps, { foreignKey: "branchId", as: "ups" });
   BranchUps.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });
+}
+
+if (Branch && Inverter && !Branch.associations?.inverters) {
+  Branch.hasMany(Inverter, { foreignKey: "branchId", as: "inverters" });
+  Inverter.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });
 }
 
 const ensureHasMany = (parent, child, as) => {
@@ -220,6 +226,7 @@ const attachSubCategory = (Model) => {
   BranchScanner,
   BranchProjector,
   BranchUps,
+  Inverter,
   BranchCctv,
   BranchPanel,
   BranchIpPhone,

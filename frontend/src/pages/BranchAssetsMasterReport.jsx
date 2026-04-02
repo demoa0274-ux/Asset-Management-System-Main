@@ -341,9 +341,17 @@ const getAssignedUser = (section, rawObj) => {
   switch (section) {
     case "desktop": return rawObj?.userName || rawObj?.desktop_domain || rawObj?.name || "";
     case "laptop": return rawObj?.laptop_user || "";
-    case "printer": case "scanner": case "panel": case "ipphone": case "switch":
-    case "extra_monitor": case "ups": return rawObj?.assigned_user || "";
-    default: return rawObj?.assigned_to || rawObj?.assigned_user || rawObj?.userName || "";
+    case "printer":
+    case "scanner":
+    case "panel":
+    case "ipphone":
+    case "switch":
+    case "extra_monitor":
+    case "ups":
+    case "inverter":
+      return rawObj?.assigned_user || "";
+    default:
+      return rawObj?.assigned_to || rawObj?.assigned_user || rawObj?.userName || "";
   }
 };
 
@@ -352,6 +360,23 @@ const mapToExcelRow = (section, d, branchName) => {
   const base = { Section:section, Branch:branchName, "Asset Code":d?.assetId||d?.asset_id||"", "Sub-Cat Code":d?.sub_category_code||"", Remarks:d?.remarks||"" };
   switch (section) {
     case "switch": return {...base,"Asset Name":d?.asset_name||"","Model":d?.model||"","Type":d?.type||"","Brand":d?.brand||"","Location":d?.location||"","Port":d?.port||"","Assigned User":d?.assigned_user||""};
+    case "inverter":
+    return {
+      ...base,
+      Name: d?.name || "",
+      Model: d?.inverter_model || "",
+      "Backup Time": d?.inverter_backup_time || "",
+      Installer: d?.inverter_installer || "",
+      "Assigned User": d?.assigned_user || "",
+      "Battery 1": d?.battery_1 || "",
+      "Battery 2": d?.battery_2 || "",
+      "Battery 3": d?.battery_3 || "",
+      "Battery 4": d?.battery_4 || "",
+      "Battery Rating": d?.battery_rating || "",
+      "Purchase Year": d?.inverter_purchase_year || "",
+      Status: d?.inverter_status || "Active",
+      Location: d?.location || "",
+    };
     case "extra_monitor": return {...base,"Monitor Brand":d?.monitor_brand||"","Monitor Size":d?.monitor_size||"","Monitor Location":d?.monitor_location||"","Monitor Status":d?.monitor_status||"","System Model":d?.system_model||"","Assigned User":d?.assigned_user||""};
     case "server": return {...base,Brand:d?.brand||"","IP Address":d?.ip_address||"",Location:d?.location||"","Model No":d?.model_no||"","Purchase Date":formatDateForExcel(d?.purchase_date),Vendor:d?.vendor||d?.vendor_name||"",Specification:d?.specification||"",Storage:d?.storage||"",Memory:d?.memory||"","Window Server Version":d?.windows_server_version||"",Virtualization:d?.virtualization||""};
     case "firewall_router": return {...base,Brand:d?.brand||"",Model:d?.model||"","Purchase Date":formatDateForExcel(d?.purchase_date),Vendor:d?.vendor||d?.vendor_name||"","Liscence-expiry":formatDateForExcel(d?.license_expiry||d?.expiry_date)};
@@ -398,6 +423,26 @@ const SECTION_FIELD_MAP = {
   printer:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,"Assigned User":(d)=>d?.assigned_user,Name:(d)=>d?.printer_name||d?.name,Model:(d)=>d?.printer_model,"Printer Type":(d)=>d?.printer_type,Status:(d)=>d?.printer_status||d?.status,Location:(d)=>d?.location,"IP Address":(d)=>d?.ip_address,Remarks:(d)=>d?.remarks},
   scanner:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,Name:(d)=>d?.scanner_name,Model:(d)=>d?.scanner_model,"Assigned User":(d)=>d?.assigned_user,Location:(d)=>d?.location,Remarks:(d)=>d?.remarks},
   connectivity:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,Status:(d)=>d?.connectivity_status,Network:(d)=>d?.connectivity_network,"LAN IP":(d)=>d?.connectivity_lan_ip,"WAN Link":(d)=>d?.connectivity_wlink,"LAN Switch":(d)=>d?.connectivity_lan_switch,"WiFi":(d)=>d?.connectivity_wifi,"Installed Year":(d)=>d?.installed_year,Location:(d)=>d?.location,Remarks:(d)=>d?.remarks},
+  inverter: {
+    Section: (d, r) => r?.section,
+    Branch: (d, r) => r?.branch,
+    "Asset Code": (d) => d?.assetId,
+    "Sub-Cat Code": (d) => d?.sub_category_code,
+    Name: (d) => d?.name,
+    Model: (d) => d?.inverter_model,
+    "Backup Time": (d) => d?.inverter_backup_time,
+    Installer: (d) => d?.inverter_installer,
+    "Assigned User": (d) => d?.assigned_user,
+    "Battery 1": (d) => d?.battery_1,
+    "Battery 2": (d) => d?.battery_2,
+    "Battery 3": (d) => d?.battery_3,
+    "Battery 4": (d) => d?.battery_4,
+    "Battery Rating": (d) => d?.battery_rating,
+    "Purchase Year": (d) => d?.inverter_purchase_year,
+    Status: (d) => d?.inverter_status,
+    Location: (d) => d?.location,
+    Remarks: (d) => d?.remarks,
+  },
   ups:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,Model:(d)=>d?.ups_model,"Backup Time":(d)=>d?.ups_backup_time,Installer:(d)=>d?.ups_installer,Rating:(d)=>d?.ups_rating,"Assigned User":(d)=>d?.assigned_user,Name:(d)=>d?.name,Location:(d)=>d?.location,"IP Address":(d)=>d?.ip_address,Status:(d)=>d?.ups_status,Remarks:(d)=>d?.remarks},
   projector:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,Name:(d)=>d?.projector_name,Model:(d)=>d?.projector_model,Status:(d)=>d?.projector_status||d?.status,"Purchase Date":(d)=>d?.projector_purchase_date,Location:(d)=>d?.location,"Warranty Years":(d)=>d?.warranty_years,Remarks:(d)=>d?.remarks},
   panel:{Section:(d,r)=>r?.section,Branch:(d,r)=>r?.branch,"Asset Code":(d)=>d?.assetId,"Sub-Cat Code":(d)=>d?.sub_category_code,Name:(d)=>d?.panel_name,Brand:(d)=>d?.panel_brand,"Assigned User":(d)=>d?.panel_user,"IP Address":(d)=>d?.panel_ip,Status:(d)=>d?.panel_status||d?.status,"Purchased Year":(d)=>d?.panel_purchase_year,Location:(d)=>d?.location,"Warranty Years":(d)=>d?.warranty_years,Remarks:(d)=>d?.remarks},
@@ -446,6 +491,7 @@ const headerToFieldKey = (header, section) => {
     case "Windows Version": return "window_version";
     case "Windows Gen": return "window_gen";
     case "Name":
+      if (section === "inverter") return "name";
       if (section==="printer") return "printer_name";
       if (section==="scanner") return "scanner_name";
       if (section==="projector") return "projector_name";
@@ -467,8 +513,34 @@ const headerToFieldKey = (header, section) => {
     case "IP Address": return section==="panel"?"panel_ip":section==="ipphone"?"ip_telephone_ip":"ip_address";
     case "Warranty Years": return "warranty_years";
     case "Printer Type": return "printer_type";
-    case "Status": return section==="printer"?"printer_status":section==="projector"?"projector_status":section==="panel"?"panel_status":section==="ipphone"?"ip_telephone_status":section==="ups"?"ups_status":section==="connectivity"?"connectivity_status":"status";
-    case "Model": return section==="printer"?"printer_model":section==="scanner"?"scanner_model":section==="projector"?"projector_model":section==="ups"?"ups_model":"model";
+    case "Status":
+    return section === "printer"
+      ? "printer_status"
+      : section === "projector"
+      ? "projector_status"
+      : section === "panel"
+      ? "panel_status"
+      : section === "ipphone"
+      ? "ip_telephone_status"
+      : section === "ups"
+      ? "ups_status"
+      : section === "inverter"
+      ? "inverter_status"
+      : section === "connectivity"
+      ? "connectivity_status"
+      : "status";
+      case "Model":
+      return section === "printer"
+      ? "printer_model"
+      : section === "scanner"
+      ? "scanner_model"
+      : section === "projector"
+      ? "projector_model"
+      : section === "ups"
+      ? "ups_model"
+      : section === "inverter"
+      ? "inverter_model"
+      : "model";
     case "Purchased Year": return section==="panel"?"panel_purchase_year":null;
     case "Extension No": return "ip_telephone_ext_no";
     case "NVR IP": return "cctv_nvr_ip";
@@ -482,10 +554,15 @@ const headerToFieldKey = (header, section) => {
     case "LAN Switch": return "connectivity_lan_switch";
     case "WiFi": return "connectivity_wifi";
     case "Installed Year": return "installed_year";
-    case "Backup Time": return "ups_backup_time";
-    case "Installer": return "ups_installer";
+    case "Backup Time": return section === "inverter" ? "inverter_backup_time" : "ups_backup_time";
+    case "Installer": return section === "inverter" ? "inverter_installer" : "ups_installer";
     case "Rating": return "ups_rating";
+    case "Battery 1": return "battery_1";
+    case "Battery 2": return "battery_2";
+    case "Battery 3": return "battery_3";
+    case "Battery 4": return "battery_4";
     case "Battery Rating": return "battery_rating";
+    case "Purchase Year": return section === "inverter" ? "inverter_purchase_year" : null;
     case "Model No": return "model_no";
     case "Specification": return "specification";
     case "Storage": return "storage";
@@ -569,6 +646,17 @@ function toReportRows(branches, subCatMap, groupMap) {
     };
     safeArray(b?.connectivity).forEach(c=>pushRow("connectivity",c,{subCategoryCode:c?.sub_category_code||"IN",name:"Connectivity",brand:"",model:c?.connectivity_network||"LAN",purchaseYear:c?.installed_year||"",status:c?.connectivity_status||""}));
     safeArray(b?.ups).forEach(u=>{const um=u?.ups_model||"";pushRow("ups",u,{subCategoryCode:u?.sub_category_code||"UP",name:"UPS",brand:guessBrand(um),model:um,purchaseYear:u?.ups_purchase_year||"",status:u?.ups_status||""});});
+    safeArray(b?.inverters || b?.inverter).forEach(inv => {
+      const im = inv?.inverter_model || "";
+      pushRow("inverter", inv, {
+        subCategoryCode: inv?.sub_category_code || "IV",
+        name: inv?.name || "Inverter",
+        brand: guessBrand(im),
+        model: im,
+        purchaseYear: inv?.inverter_purchase_year || "",
+        status: inv?.inverter_status || "",
+      });
+    });
     const pushDevice=(section,row)=>{
       const purchaseYear=row?.monitor_purchase_year||row?.panel_purchase_year||yearFromDate(row?.purchase_date)||row?.purchased_year||row?.installed_year||"";
       const deviceName=row?.monitor_name||row?.asset_name||row?.server_name||row?.firewall_name||row?.name||row?.scanner_name||row?.projector_name||row?.printer_name||row?.panel_name||row?.desktop_ids||row?.ip_telephone_ext_no||"";
@@ -615,6 +703,7 @@ const sectionRouteMap = {
   cctv:{type:"multi",plural:"cctvs"},server:{type:"multi",plural:"servers"},
   firewall_router:{type:"multi",plural:"firewall-routers"},connectivity:{type:"multi",plural:"connectivity"},
   ups:{type:"multi",plural:"ups"},application_software:{type:"multi",plural:"application-software"},
+  inverter:{type:"multi",plural:"inverters"},
   office_software:{type:"multi",plural:"office-software"},utility_software:{type:"multi",plural:"utility-software"},
   security_software:{type:"multi",plural:"security-software"},security_software_installed:{type:"multi",plural:"security-software-installed"},
   services:{type:"multi",plural:"services"},licenses:{type:"multi",plural:"licenses"},
@@ -626,7 +715,7 @@ const sectionRouteMap = {
 // ─── SECTION_ICONS ────────────────────────────────────────────────────────────
 const SECTION_ICONS = {
   desktop:"🖥",extra_monitor:"🖥",laptop:"💻",printer:"🖨",scanner:"📠",projector:"📽",panel:"📺",
-  ipphone:"📞",cctv:"📹",server:"🖧",firewall_router:"🔒",connectivity:"🌐",ups:"🔋",switch:"🔀",
+  ipphone:"📞",cctv:"📹",server:"🖧",firewall_router:"🔒",connectivity:"🌐",ups:"🔋",inverter:"🔌",switch:"🔀",
   application_software:"💾",office_software:"📋",utility_software:"🔧",
   security_software:"🛡",security_software_installed:"🔐",
   services:"🔩",licenses:"🪪",windows_os:"🪟",windows_servers:"🏗",
@@ -832,8 +921,8 @@ const D = {
 ════════════════════════════════ */
 export default function BranchAssetsMasterReport() {
   const {token,isAdmin,isSubAdmin,user} = useAuth();
-  const canEdit1 = isAdmin;
-  const canEdit = isAdmin || isSubAdmin;
+  const canEdit = isAdmin;
+  const canEdit1 = isAdmin || isSubAdmin;
 
   const canDelete = isAdmin;
   const currentUserName = user?.name||user?.email||"Unknown User";
@@ -1358,7 +1447,7 @@ export default function BranchAssetsMasterReport() {
                 <div className="ar-page-sub">{totalItems.toLocaleString()} assets · {allSections.length} sections{activeBranchName&&<span style={{color:NL_BLUE,fontWeight:600}}> · {activeBranchName}</span>}</div>
               </div>
               <div className="ar-topbar-right">
-                {canEdit1&&(
+                {canEdit&&(
               <div className="ar-topbar-right">
                 <button className="ar-btn ar-btn-blue-outline ar-btn-sm" onClick={onExportCSV}>
                   <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
@@ -1371,7 +1460,7 @@ export default function BranchAssetsMasterReport() {
                     </label>
                 </div>
                 )}
-                {canEdit&&(
+                {canEdit1&&(
                   <>
                     <button className="ar-btn ar-btn-success ar-btn-sm" onClick={()=>setShowAddModal(true)}>
                       + <span className="btn-label">Add Asset</span>

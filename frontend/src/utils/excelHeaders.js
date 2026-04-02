@@ -50,7 +50,13 @@ const EXCEL_HEADERS = {
 
   ups: [
     "Section", "Branch", "Asset Code", "Sub-Cat Code", "Model", "Backup Time", "Installer", "Rating",
-    "Assigned User", "Name", "Location", "IP Address", "Status", "Remarks",
+    "Assigned User", "Name", "Location", "IP Address", "Remarks",
+  ],
+
+  inverter: [
+    "Section", "Branch", "Asset Code", "Sub-Cat Code", "Name", "Model", "Backup Time",
+    "Installer", "Assigned User", "Battery 1", "Battery 2", "Battery 3", "Battery 4",
+    "Battery Rating", "Purchase Year", "Status", "Location", "Remarks",
   ],
 
   server: [
@@ -130,4 +136,4 @@ const EXCEL_HEADERS = {
   ],
 };
 
-export default EXCEL_HEADERS; 
+export default EXCEL_HEADERS;

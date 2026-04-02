@@ -5,6 +5,7 @@ const db = require("../models");
 const {
   BranchConnectivity,
   BranchUps,
+  Inverter,
   BranchScanner,
   BranchProjector,
   BranchPrinter,
@@ -281,6 +282,25 @@ const buildPayloadFromExcelRow = (section, row) => {
         ups_status: toStrOrNull(getExcel(row, ["Status"])),
       };
 
+    case "inverter":
+      return {
+        ...common,
+        assetId: toStrOrNull(getExcel(row, ["Asset Code", "assetId"])),
+        name: toStrOrNull(getExcel(row, ["Name"])),
+        inverter_model: toStrOrNull(getExcel(row, ["Model", "Inverter Model"])),
+        inverter_backup_time: toStrOrNull(getExcel(row, ["Backup Time", "Inverter Backup Time"])),
+        inverter_installer: toStrOrNull(getExcel(row, ["Installer", "Inverter Installer"])),
+        assigned_user: toStrOrNull(getExcel(row, ["Assigned User"])),
+        battery_1: toStrOrNull(getExcel(row, ["Battery 1"])),
+        battery_2: toStrOrNull(getExcel(row, ["Battery 2"])),
+        battery_3: toStrOrNull(getExcel(row, ["Battery 3"])),
+        battery_4: toStrOrNull(getExcel(row, ["Battery 4"])),
+        battery_rating: toStrOrNull(getExcel(row, ["Battery Rating"])),
+        inverter_purchase_year: toIntOrNullSafe(getExcel(row, ["Purchase Year", "Inverter Purchase Year"])),
+        inverter_status: toStrOrNull(getExcel(row, ["Status", "Inverter Status"])),
+        location: toStrOrNull(getExcel(row, ["Location"])),
+          };
+
     case "server":
       return {
         ...common,
@@ -492,6 +512,7 @@ const sectionMap = {
   extra_monitors: { type: "multi", model: BranchExtraMonitor, usesAssetId: true },
   connectivity: { type: "multi", model: BranchConnectivity, usesAssetId: true },
   ups: { type: "multi", model: BranchUps, usesAssetId: true },
+  inverter: { type: "multi", model: Inverter, usesAssetId: true },
 
   application_software: { type: "multi", model: BranchApplicationSoftware, usesAssetId: false },
   office_software: { type: "multi", model: BranchOfficeSoftware, usesAssetId: false },
@@ -536,7 +557,9 @@ exports.importAssets = asyncHandler(async (req, res) => {
     }
 
     const identifierRaw = cfg.usesAssetId
-      ? getExcel(excelRow, ["Asset Code", "Asset ID", "assetId", "asset_id", "AssetID"]) || item?.assetId || null
+      ? getExcel(excelRow, ["Asset Code", "Asset ID", "assetId", "asset_id", "AssetID"]) ||
+        item?.assetId ||
+        null
       : null;
 
     const numericId = cfg.usesAssetId ? toIntOrNull(identifierRaw) : null;
@@ -600,6 +623,5 @@ exports.importAssets = asyncHandler(async (req, res) => {
       result.errors.push({ rowNo, message: rowErr?.message || "Row import failed" });
     }
   }
-
   return sendSuccess(res, result, "Import finished");
 });

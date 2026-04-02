@@ -18,6 +18,7 @@ const sectionConfigMap = {
   extra_monitor: { model: () => db.BranchExtraMonitor, pk: "id", userField: "assigned_user" },
   connectivity: { model: () => db.BranchConnectivity, pk: "id", userField: null },
   ups: { model: () => db.BranchUps, pk: "id", userField: "assigned_user" },
+  inverter: { model: () => db.Inverter, pk: "id", userField: "assigned_user" },
 
   application_software: { model: () => db.BranchApplicationSoftware, pk: "id", userField: "assigned_to" },
   office_software: { model: () => db.BranchOfficeSoftware, pk: "id", userField: "assigned_to" },

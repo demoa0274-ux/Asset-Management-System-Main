@@ -125,6 +125,7 @@ export default function AssetTransferHistoryModal({
     switch: "bg-lime-50 text-lime-700 border-lime-200",
     connectivity: "bg-blue-50 text-blue-700 border-blue-200",
     ups: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    inverter: "bg-orange-50 text-orange-700 border-orange-200",   // ── NEW ──
     extra_monitor: "bg-purple-50 text-purple-700 border-purple-200",
     default: "bg-slate-50 text-slate-700 border-slate-200",
   };

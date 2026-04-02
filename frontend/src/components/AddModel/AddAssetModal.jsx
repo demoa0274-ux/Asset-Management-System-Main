@@ -229,6 +229,14 @@ const SECTION_ALL_FIELDS = {
     "ups_rating","assigned_user","name","location","ip_address","ups_status","remarks",
   ],
 
+  // ── NEW: Inverter ──────────────────────────────────────────────────────────
+  inverter: [
+    "assetId","sub_category_code","name","inverter_model","inverter_backup_time",
+    "inverter_installer","assigned_user",
+    "battery_1","battery_2","battery_3","battery_4","battery_rating",
+    "inverter_purchase_year","inverter_status","location","remarks",
+  ],
+
   server: [
     "assetId","sub_category_code","brand","ip_address","location","model_no","purchase_date",
     "vendor","specification","storage","memory","windows_server_version",
@@ -317,6 +325,7 @@ const SUBCODE_TO_SECTION = {
   CC:"cctv", CV:"cctv",
   IN:"connectivity",
   UP:"ups",
+  IV:"inverter",   
   SR:"server", SVR:"server",
   FR:"firewall_router",
   EA:"switch", EX:"switch", SW:"switch",
@@ -342,6 +351,7 @@ const isDateKey = (k) => [
 const isYearKey = (k) => [
   "installed_year","panel_purchase_year","ups_purchase_year",
   "monitor_purchase_year","warranty_years",
+  "inverter_purchase_year",   // ── NEW ──
 ].includes(k);
 
 const isYesNoKey = (k) => k === "virtualization";
@@ -349,6 +359,7 @@ const isYesNoKey = (k) => k === "virtualization";
 const isStatusKey = (k) => [
   "status","printer_status","projector_status","panel_status","ip_telephone_status",
   "ups_status","connectivity_status","activation_status","real_time_protection","monitor_status",
+  "inverter_status",   // ── NEW ──
 ].includes(k);
 
 const isFullWidthKey = (k) => [
@@ -374,6 +385,11 @@ const niceLabel = (k) =>
     .replace(/^Ups Installer$/, "Installer")
     .replace(/^Ups Rating$/, "Rating")
     .replace(/^Ups Status$/, "Status")
+    .replace(/^Inverter Model$/, "Model")
+    .replace(/^Inverter Backup Time$/, "Backup Time")
+    .replace(/^Inverter Installer$/, "Installer")
+    .replace(/^Inverter Purchase Year$/, "Purchase Year")
+    .replace(/^Inverter Status$/, "Status")
     .replace(/^Tool Name$/, "Name")
     .replace(/^Software Name$/, "Name")
     .replace(/^Software Category$/, "Category")
@@ -422,6 +438,16 @@ const SECTION_GROUPS = {
     { label:"Assignment",       keys:["system_model","assigned_user"] },
     { label:"Notes",            keys:["remarks"] },
   ],
+
+  // ── NEW: Inverter ──────────────────────────────────────────────────────────
+  inverter: [
+    { label:"Inverter Info",     keys:["assetId","sub_category_code","name","inverter_model"] },
+    { label:"Backup & Install",  keys:["inverter_backup_time","inverter_installer","assigned_user","inverter_purchase_year"] },
+    { label:"Battery Details",   keys:["battery_1","battery_2","battery_3","battery_4","battery_rating"] },
+    { label:"Status & Location", keys:["inverter_status","location"] },
+    { label:"Notes",             keys:["remarks"] },
+  ],
+
   application_software: [
     { label:"Software Info",    keys:["sub_category_code","software_name","software_category","version","vendor_name"] },
     { label:"License",          keys:["license_type","license_key","quantity","purchase_date","expiry_date","assigned_to"] },
