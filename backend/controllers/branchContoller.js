@@ -62,6 +62,20 @@ function sanitizeBranchBody(body) {
   };
 }
 
+const normalizeRole = (role) => String(role || "").trim().toLowerCase().replace(/[_\s-]/g, "");
+
+const branchQueryFilter = (req) => {
+  if (normalizeRole(req.user?.role) !== "subadmin") return {};
+  const stationId = Number(req.user?.service_station_id);
+  if (!stationId) return { service_station_id: -999999 };
+  return { service_station_id: stationId };
+};
+
+const getBranchByIdForUser = async (req, id, extraOptions = {}) => {
+  const where = { id: Number(id), ...branchQueryFilter(req) };
+  return await Branch.findOne({ where, ...extraOptions });
+};
+
 const makeSubCatInclude = () => ({
   model: AssetSubCategory,
   as: "subCategory",
@@ -119,7 +133,10 @@ exports.getBranches = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
   const offset = (page - 1) * limit;
 
+  const where = branchQueryFilter(req);
+
   const { count, rows } = await Branch.findAndCountAll({
+    where,
     limit,
     offset,
     order: [["id", "ASC"]],
@@ -136,10 +153,27 @@ exports.getBranches = asyncHandler(async (req, res) => {
   return sendPaginated(res, rows, page, limit, count, "Branches fetched successfully");
 });
 
+exports.getAllBranches = asyncHandler(async (req, res) => {
+  const rows = await Branch.findAll({
+    where: branchQueryFilter(req),
+    order: [["id", "ASC"]],
+    include: [
+      {
+        model: ServiceStation,
+        as: "serviceStation",
+        attributes: ["id", "name", "station_ext_no"],
+        required: false,
+      },
+    ],
+  });
+
+  return sendSuccess(res, rows, "Branches fetched successfully");
+});
+
 exports.getBranchById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const branch = await Branch.findByPk(id, {
+  const branch = await getBranchByIdForUser(req, id, {
     include: [
       {
         model: ServiceStation,
@@ -183,7 +217,7 @@ exports.getBranchAssetsSummary = asyncHandler(async (req, res) => {
   const branchId = Number(req.params.id);
   if (!branchId) return sendError(res, "Invalid branch id", 400);
 
-  const branch = await Branch.findByPk(branchId, { attributes: ["id", "branch_code"] });
+  const branch = await getBranchByIdForUser(req, branchId, { attributes: ["id", "branch_code"] });
   if (!branch) return sendError(res, "Branch not found", 404);
 
   const [
@@ -284,6 +318,7 @@ exports.getBranchesWithAssets = asyncHandler(async (req, res) => {
   });
 
   const rows = await Branch.findAll({
+    where: branchQueryFilter(req),
     order: [["id", "ASC"]],
     include: [
       {
@@ -373,7 +408,7 @@ exports.createBranch = asyncHandler(async (req, res) => {
 
 exports.updateBranch = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const branch = await Branch.findByPk(id);
+  const branch = await getBranchByIdForUser(req, id);
   if (!branch) return sendError(res, "Branch not found", 404);
 
   const { isValid, errors } = validate.branchInput(
@@ -397,7 +432,7 @@ exports.updateBranch = asyncHandler(async (req, res) => {
 
 exports.deleteBranch = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const branch = await Branch.findByPk(id);
+  const branch = await getBranchByIdForUser(req, id);
   if (!branch) return sendError(res, "Branch not found", 404);
   await branch.destroy();
   return sendSuccess(res, {}, "Branch deleted successfully");

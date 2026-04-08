@@ -41,6 +41,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      service_station_id: user.service_station_id || null,
       token: generateToken(user.id, user.role),
     },
     "User registered successfully",
@@ -63,17 +64,19 @@ exports.loginUser = asyncHandler(async (req, res) => {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return sendError(res, "Invalid email or password", 401);
 
-  return sendSuccess(
-    res,
-    {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id, user.role),
-    },
-    "Login successful"
-  );
+      return sendSuccess(
+      res,
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        service_station_id: user.service_station_id || null,
+        img_url: user.img_url,
+        token: generateToken(user.id, user.role),
+      },
+      "Login successful"
+    );
 });
 
 /* ===========================

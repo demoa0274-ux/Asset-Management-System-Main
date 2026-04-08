@@ -1,5 +1,5 @@
 // src/pages/AdminUsers.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
@@ -211,6 +211,7 @@ const PAGE_STYLES = `
     background:${NL_BLUE}; border-right:0.5px solid rgba(255,255,255,0.15);
   }
   .au-table thead th:nth-child(5) { background:${NL_RED}; }
+  .au-table thead th:nth-child(6) { background:${NL_RED}; }
   .au-table th, .au-table td { border-right:0.5px solid rgba(0,0,0,0.06); border-bottom:1px solid #e2e8f0; }
   .au-table tbody tr { border-bottom:1px solid var(--gray-100); transition:background 0.12s; }
   .au-table tbody tr:last-child { border-bottom:none; }
@@ -224,7 +225,7 @@ const PAGE_STYLES = `
   .au-badge-gray   { background:var(--gray-100);  color:var(--gray-600);   border:1px solid var(--gray-200);   }
   .au-badge-rose   { background:var(--rose-50);   color:var(--rose-600);   border:1px solid var(--rose-200);   }
   .au-badge-violet { background:var(--violet-50); color:var(--violet-700); border:1px solid var(--violet-200); }
-  .au-badge-amber  { background:var(--amber-50);  color:var(--amber-600);  border:1px solid var(--amber-100);  }
+  .au-badge-amber  { background:var(--amber-50);  color:var(--amber-600);  border:1px solid var(--amber-100); }
 
   .au-user-avatar {
     width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -313,6 +314,12 @@ const buildPayload = (form, editing = false) => {
 
   if (!editing || form.password.trim()) {
     payload.password = form.password;
+  }
+
+  if (normalizeRole(form.role) === "subadmin") {
+    payload.service_station_id = form.service_station_id ? Number(form.service_station_id) : null;
+  } else {
+    payload.service_station_id = null;
   }
 
   return payload;
@@ -509,12 +516,15 @@ export default function AdminUsers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
     role: "user",
     password: "",
+    service_station_id: "",
   });
+  const [serviceStations, setServiceStations] = useState([]);
 
   useEffect(() => {
     const h = () => setWindowWidth(window.innerWidth);
@@ -546,9 +556,23 @@ export default function AdminUsers() {
     }
   };
 
+  const fetchServiceStations = useCallback(async () => {
+    if (!token || !isAdmin) return;
+    try {
+      const res = await api.get("/api/service-stations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = res?.data?.data ?? res?.data ?? [];
+      setServiceStations(Array.isArray(payload) ? payload : []);
+    } catch {
+      setServiceStations([]);
+    }
+  }, [token, isAdmin]);
+
   useEffect(() => {
     fetchUsers();
-  }, [token, isAdmin]);
+    fetchServiceStations();
+  }, [token, isAdmin, fetchServiceStations]);
 
   const totalUsers = rows.length;
   const adminCount = rows.filter((u) => normalizeRole(u.role) === "admin").length;
@@ -587,7 +611,7 @@ export default function AdminUsers() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", email: "", role: "user", password: "" });
+    setForm({ name: "", email: "", role: "user", password: "", service_station_id: "" });
     setModalOpen(true);
     setErr("");
   };
@@ -599,6 +623,7 @@ export default function AdminUsers() {
       email: u?.email || "",
       role: normalizeRole(u?.role || "user"),
       password: "",
+      service_station_id: u?.service_station_id ? String(u.service_station_id) : "",
     });
     setModalOpen(true);
     setErr("");
@@ -656,6 +681,74 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDatabaseBackup = async () => {
+  try {
+    setBackupLoading(true);
+    setErr("");
+
+    const response = await api.get("/api/backup/download", {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: "blob",
+    });
+
+    const contentDisposition = response.headers["content-disposition"];
+    let fileName = "database-backup.sql";
+
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="(.+)"/);
+      if (match?.[1]) {
+        fileName = match[1];
+      }
+    }
+
+    const blob = new Blob([response.data], { type: "application/sql" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    let message = "Failed to download backup";
+
+    try {
+      const data = e?.response?.data;
+
+      if (data instanceof Blob) {
+        const text = await data.text();
+        try {
+          const parsed = JSON.parse(text);
+          message =
+            parsed?.stderr ||
+            parsed?.error ||
+            parsed?.message ||
+            text ||
+            message;
+        } catch {
+          message = text || message;
+        }
+      } else {
+        message =
+          data?.stderr ||
+          data?.error ||
+          data?.message ||
+          message;
+      }
+    } catch {
+      message = e?.message || message;
+    }
+
+    console.error("Backup download failed:", message, e);
+    setErr(message);
+  } finally {
+    setBackupLoading(false);
+  }
+};
+
   const navItems = [
     { label: "Analytics", path: "/assetdashboard", icon: D.graph },
     { label: "Branches", path: "/branches", icon: D.branch },
@@ -706,7 +799,6 @@ export default function AdminUsers() {
       </>
     );
   }
-
   const rolePillDef = (key, label, cls, count) => ({
     key,
     label,
@@ -714,14 +806,12 @@ export default function AdminUsers() {
     count,
     sel: roleFilter === key || (key === "" && roleFilter === ""),
   });
-
   const rolePills = [
     rolePillDef("", `All (${totalUsers})`, "au-role-pill-all", totalUsers),
     rolePillDef("admin", `Admin (${adminCount})`, "au-role-pill-admin", adminCount),
     rolePillDef("subadmin", `Sub Admin (${subAdminCount})`, "au-role-pill-sub", subAdminCount),
     rolePillDef("user", `User (${userCount})`, "au-role-pill-user", userCount),
   ];
-
   return (
     <div className="au-root">
       <style>{FONTS}{PAGE_STYLES}</style>
@@ -969,6 +1059,17 @@ export default function AdminUsers() {
                 Refresh
               </button>
 
+              <button
+                className="au-btn au-btn-blue-outline au-btn-sm"
+                onClick={handleDatabaseBackup}
+                disabled={backupLoading}
+              >
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
+                </svg>
+                {backupLoading ? "Preparing Backup..." : "Download Backup"}
+              </button>
+
               <button className="au-btn au-btn-success au-btn-sm" onClick={openCreate}>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1195,6 +1296,7 @@ export default function AdminUsers() {
                       <th>User</th>
                       <th>Email</th>
                       <th>Role</th>
+                      <th>Station</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -1260,6 +1362,11 @@ export default function AdminUsers() {
                           </td>
                           <td>
                             <RoleBadge role={u.role} />
+                          </td>
+                          <td>
+                            <span style={{ color: "var(--gray-600)", fontSize: 13, display: "block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {serviceStations.find((s) => s.id === u.service_station_id)?.name || (u.service_station_id ? `Station #${u.service_station_id}` : "—")}
+                            </span>
                           </td>
                           <td>
                             <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
@@ -1459,18 +1566,40 @@ export default function AdminUsers() {
                       <select
                         className="au-select"
                         value={form.role}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const roleValue = normalizeRole(e.target.value);
                           setForm((f) => ({
                             ...f,
-                            role: normalizeRole(e.target.value),
-                          }))
-                        }
+                            role: roleValue,
+                            service_station_id: roleValue === "subadmin" ? f.service_station_id : "",
+                          }));
+                        }}
                       >
                         <option value="user">User</option>
                         <option value="subadmin">Sub Admin</option>
                         <option value="admin">Admin</option>
                       </select>
                     </div>
+
+                    {normalizeRole(form.role) === "subadmin" && (
+                      <div>
+                        <label className="au-label">Assigned Station</label>
+                        <select
+                          className="au-select"
+                          value={form.service_station_id}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, service_station_id: e.target.value }))
+                          }
+                        >
+                          <option value="">-- Select Service Station --</option>
+                          {serviceStations.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}{s.station_ext_no ? ` (Ext. ${s.station_ext_no})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div>
                       <label className="au-label">{editing ? "New Password" : "Password"}</label>

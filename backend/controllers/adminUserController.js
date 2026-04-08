@@ -1,6 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
-const User = require("../models/User");
+const db = require("../models");
+const User = db.User;
+const ServiceStation = db.ServiceStation;
 
 const normalizeRole = (role) => {
   const value = String(role || "").trim().toLowerCase();
@@ -19,7 +21,16 @@ const isAdminFlagFromRole = (role) => role === "admin";
 // GET all users
 exports.getUsers = asyncHandler(async (req, res) => {
   const users = await User.findAll({
-    attributes: ["id", "name", "email", "role", "is_admin", "created_at", "updated_at"],
+    attributes: [
+      "id",
+      "name",
+      "email",
+      "role",
+      "is_admin",
+      "service_station_id",
+      "created_at",
+      "updated_at",
+    ],
     order: [["id", "DESC"]],
   });
 
@@ -28,7 +39,7 @@ exports.getUsers = asyncHandler(async (req, res) => {
 
 // CREATE user
 exports.createUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role = "user" } = req.body || {};
+  const { name, email, password, role = "user", service_station_id } = req.body || {};
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: "name, email, password are required" });
@@ -39,6 +50,19 @@ exports.createUser = asyncHandler(async (req, res) => {
 
   if (!normalizedRole) {
     return res.status(400).json({ message: "Invalid role. Allowed: admin, subadmin, user" });
+  }
+
+  let serviceStationId = null;
+  if (service_station_id !== undefined && service_station_id !== null && service_station_id !== "") {
+    serviceStationId = Number(service_station_id);
+    if (Number.isNaN(serviceStationId)) {
+      return res.status(400).json({ message: "Invalid service_station_id" });
+    }
+
+    const station = await ServiceStation.findByPk(serviceStationId);
+    if (!station) {
+      return res.status(400).json({ message: "Invalid service station" });
+    }
   }
 
   const exists = await User.findOne({ where: { email: normalizedEmail } });
@@ -54,6 +78,7 @@ exports.createUser = asyncHandler(async (req, res) => {
     password: hashed,
     role: normalizedRole,
     is_admin: isAdminFlagFromRole(normalizedRole),
+    service_station_id: serviceStationId,
   });
 
   res.status(201).json({
@@ -64,6 +89,7 @@ exports.createUser = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
       is_admin: user.is_admin,
+      service_station_id: user.service_station_id || null,
     },
   });
 });
@@ -71,7 +97,7 @@ exports.createUser = asyncHandler(async (req, res) => {
 // UPDATE user
 exports.updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, role, password } = req.body || {};
+  const { name, email, role, password, service_station_id } = req.body || {};
 
   const user = await User.findByPk(id);
   if (!user) {
@@ -109,6 +135,22 @@ exports.updateUser = asyncHandler(async (req, res) => {
     payload.is_admin = isAdminFlagFromRole(normalizedRole);
   }
 
+  if (service_station_id !== undefined) {
+    let serviceStationId = null;
+    if (service_station_id !== null && service_station_id !== "") {
+      serviceStationId = Number(service_station_id);
+      if (Number.isNaN(serviceStationId)) {
+        return res.status(400).json({ message: "Invalid service_station_id" });
+      }
+
+      const station = await ServiceStation.findByPk(serviceStationId);
+      if (!station) {
+        return res.status(400).json({ message: "Invalid service station" });
+      }
+    }
+    payload.service_station_id = serviceStationId;
+  }
+
   if (password !== undefined && String(password).trim() !== "") {
     payload.password = await bcrypt.hash(String(password), 10);
   }
@@ -123,6 +165,7 @@ exports.updateUser = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
       is_admin: user.is_admin,
+      service_station_id: user.service_station_id || null,
     },
   });
 });

@@ -125,6 +125,13 @@ if (ServiceStation && Branch && !ServiceStation.associations?.branches) {
   ServiceStation.hasMany(Branch, { foreignKey: "service_station_id", as: "branches" });
 }
 
+if (ServiceStation && User && !User.associations?.serviceStation) {
+  User.belongsTo(ServiceStation, { foreignKey: "service_station_id", as: "serviceStation" });
+}
+if (ServiceStation && User && !ServiceStation.associations?.users) {
+  ServiceStation.hasMany(User, { foreignKey: "service_station_id", as: "users" });
+}
+
 if (Branch && BranchInfra && !Branch.associations?.infra) {
   Branch.hasOne(BranchInfra, { foreignKey: "branchId", as: "infra" });
   BranchInfra.belongsTo(Branch, { foreignKey: "branchId", as: "branch" });

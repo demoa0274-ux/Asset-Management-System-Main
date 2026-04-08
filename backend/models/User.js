@@ -32,6 +32,11 @@ const User = sequelize.define(
       defaultValue: "user",
     },
 
+    service_station_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
     img_url: {
       type: DataTypes.TEXT("long"),
       allowNull: true,

@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin: role === "admin",
         isSubAdmin: role === "subadmin",
         isUser: role === "user",
+        service_station_id: data.service_station_id || null,
         img_url: normalizeImgUrl(data.img_url || null),
         remember,
       };

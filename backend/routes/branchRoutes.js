@@ -1,11 +1,44 @@
 const express = require("express");
+const asyncHandler = require("express-async-handler");
 const router = express.Router();
 
 const branchController = require("../controllers/branchContoller");
+const db = require("../models");
+const Branch = db.Branch;
 const { protect } = require("../middleware/authMiddleware");
 const { adminOrSubadmin, adminOnly } = require("../middleware/adminMiddleware");
 
+const normalizeRole = (role) => String(role || "").trim().toLowerCase().replace(/[_\s-]/g, "");
+
+const authorizeBranchAccess = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const branchId = Number(id);
+  if (!branchId) return res.status(404).json({ message: "Branch not found" });
+
+  if (normalizeRole(req.user?.role) === "subadmin") {
+    const stationId = Number(req.user?.service_station_id);
+    if (!stationId) return res.status(404).json({ message: "Branch not found" });
+
+    const branch = await Branch.findOne({
+      where: { id: branchId, service_station_id: stationId },
+    });
+    if (!branch) return res.status(404).json({ message: "Branch not found" });
+
+    req.branch = branch;
+    return next();
+  }
+
+  const branch = await Branch.findByPk(branchId);
+  if (!branch) return res.status(404).json({ message: "Branch not found" });
+
+  req.branch = branch;
+  next();
+});
+
 router.get("/with-assets/all", protect, branchController.getBranchesWithAssets);
+router.get("/all", protect, branchController.getAllBranches);
+
+router.use("/:id", protect, authorizeBranchAccess);
 
 router.get("/:id/assets-summary", protect, branchController.getBranchAssetsSummary);
 router.post("/ping", protect, branchController.pingDevice);

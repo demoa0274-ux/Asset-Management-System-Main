@@ -60,6 +60,12 @@ exports.bulkImportUsers = async (req, res) => {
         password: await bcrypt.hash(String(u.password), 10),
         role: normalizeRole(u.role),
         is_admin: normalizeRole(u.role) === "admin",
+        service_station_id:
+          u.service_station_id === undefined || u.service_station_id === null || u.service_station_id === ""
+            ? null
+            : Number.isNaN(Number(u.service_station_id))
+            ? null
+            : Number(u.service_station_id),
       }))
     );
 

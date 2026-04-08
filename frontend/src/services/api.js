@@ -2,7 +2,6 @@
 import axios from "axios";
 import { HTTP_STATUS, API_TIMEOUT, STORAGE_KEYS } from "../utils/constants";
 
-// ✅ Auto-detect API host from where frontend is opened (LAN-safe)
 const API_PORT = 5001;
 
 const baseURL =
@@ -44,7 +43,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const { response, request, message } = error;
 
     if (response) {
@@ -60,8 +59,21 @@ api.interceptors.response.use(
         window.location.href = "/unauthorized";
       }
 
-      // Optional: helpful log
-      console.error("API error:", response.status, response.data);
+      try {
+        if (response.data instanceof Blob) {
+          const text = await response.data.text();
+          try {
+            const parsed = JSON.parse(text);
+            console.error("API error:", response.status, parsed);
+          } catch {
+            console.error("API error:", response.status, text);
+          }
+        } else {
+          console.error("API error:", response.status, response.data);
+        }
+      } catch {
+        console.error("API error:", response.status, response.data);
+      }
     } else if (request) {
       console.error("No response received. API baseURL:", baseURL);
       console.error("Request:", request);

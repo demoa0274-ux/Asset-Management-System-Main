@@ -8,6 +8,7 @@ const path = require("path");
 const adminUserRoutes = require("./routes/adminUserRoutes");
 const { errorHandler } = require("./middleware/errorMiddleware");
 const userImportRoutes = require("./routes/userImportRoutes");
+const backupRoutes = require("./routes/backupRoutes");
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use("/api/maintenance", require("./routes/assetMaintenanceRoutes"));
 app.use("/api/assets", require("./routes/assetImportRoutes"));
 app.use("/api/asset-history", require("./routes/assetHistoryRoutes"));
 app.use("/api/admin/users", adminUserRoutes);
+app.use("/api/backup", backupRoutes);
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/test", require("./routes/testRoutes"));
 app.use("/api/assets", require("./routes/assetRoutes"));
