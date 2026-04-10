@@ -15,10 +15,10 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminExpiry from "./pages/AdminExpiry";
 import AssetDashboard from './pages/AssetDashboard.jsx';
 import FileLibraryPage from './pages/FileLibraryPage.jsx'
+import Employee from "./pages/Employee";
 
 import Nav from './components/Layout/Nav';
 import { useAuth } from './context/AuthContext';
-
 
 // Layout wrapper for protected pages
 function Layout() {
@@ -78,7 +78,7 @@ export default function App() {
             <Layout />
           </PrivateRoute>
         }
-        >
+      >
         <Route index element={<Landing />} />
         <Route path="branches" element={<Branch />} />
         <Route path="branches/:id" element={<BranchDetails />} />
@@ -89,6 +89,7 @@ export default function App() {
         <Route path="admin/users" element={<AdminUsers />} />
         <Route path="admin/expiry" element={<AdminExpiry />} />
         <Route path="assetdashboard" element={<AssetDashboard/>}/>
+        <Route path="/employees-master" element={<Employee />} />
         <Route path="/file-library" element={<FileLibraryPage />} />
       </Route>
 

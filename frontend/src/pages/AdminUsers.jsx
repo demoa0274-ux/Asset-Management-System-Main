@@ -1076,6 +1076,12 @@ export default function AdminUsers() {
                 </svg>
                 Add User
               </button>
+              <button
+                className="au-btn au-btn-primary au-btn-sm"
+                onClick={() => navigate("/employees-master")}
+              >
+                Employee Master
+              </button>
             </div>
           </div>
 

@@ -943,6 +943,8 @@ export default function BranchAssetsMasterReport() {
   const [copyToast,setCopyToast] = useState("");
   const [detailTab,setDetailTab] = useState("info");
   const roleLabel = isAdmin?"ADMIN":isSubAdmin?"SUB ADMIN":"USER";
+  const [employees, setEmployees] = useState([]);
+const [employeesLoading, setEmployeesLoading] = useState(false);
 
   const [search,setSearch] = useState("");
   const [branchFilter,setBranchFilter] = useState("");
@@ -1024,13 +1026,31 @@ export default function BranchAssetsMasterReport() {
     if (!token) return;
     try{const res=await api.get("/api/asset-groups",{headers:{Authorization:`Bearer ${token}`}});setGroups(res?.data?.data||[]);}catch{}
   },[token]);
+  const fetchEmployees = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setEmployeesLoading(true);
+
+      const res = await api.get("/api/employees", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setEmployees(res?.data?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch employees:", err);
+      setEmployees([]);
+    } finally {
+      setEmployeesLoading(false);
+    }
+  }, [token]);
 
   const fetchSubCats = useCallback(async gid=>{
     if (!token) return;
     try{const res=await api.get(`/api/asset-sub-categories${gid?`?groupId=${gid}`:""}`,{headers:{Authorization:`Bearer ${token}`}});setSubCats(res?.data?.data||[]);}catch{setSubCats([]);}
   },[token]);
 
-  useEffect(()=>{fetchAll();fetchGroups();fetchSubCats("");},[fetchAll,fetchGroups,fetchSubCats]);
+  useEffect(()=>{fetchAll();fetchGroups();fetchSubCats("");fetchEmployees();},[fetchAll,fetchGroups,fetchSubCats,fetchEmployees]);
   useEffect(()=>{if(urlBranchId&&branches.length>0){setBranchFilter(urlBranchId);setShowPanel("filters");}},[urlBranchId,branches.length]);
 
   const subCatMap = useMemo(()=>{const m=new Map();for(const s of subCats||[]) if(s?.code) m.set(String(s.code),s);return m;},[subCats]);
@@ -1091,19 +1111,24 @@ export default function BranchAssetsMasterReport() {
   },[reportRows,branchFilter,groupFilter,subCatFilter,search,getBranchNameById,groupLabel,subCatLabel]);
   useEffect(()=>{computeTotal();},[computeTotal]);
 
-  const assignedUserOptions = useMemo(()=>{
-    const q=(search||"").trim().toLowerCase();
-    let data=reportRows;
-    if (branchFilter){const bName=getBranchNameById(branchFilter);data=data.filter(r=>r.branch===bName);}
-    if (groupFilter) data=data.filter(r=>String(r.categoryId||"")===String(groupFilter));
-    if (subCatFilter) data=data.filter(r=>String(r.subCategoryCode||"")===String(subCatFilter));
-    if (sectionFilter) data=data.filter(r=>r.section===sectionFilter);
-    if (statusFilter) data=data.filter(r=>r.status===statusFilter);
-    if (q) data=data.filter(r=>{const h=[r.assetId,r.subCategoryCode,r.categoryId,r.subCategoryName,r.branch,r.brand,r.name,r.model,r.purchaseYear,r.status,r.assignedUser].map(x=>String(x??"").toLowerCase()).join(" ");return h.includes(q);});
-    data=data.filter(r=>r.status==="Active");
-    const set=new Set(data.map(r=>String(r.assignedUser||"").trim()).filter(Boolean));
-    return Array.from(set).sort((a,b)=>a.localeCompare(b));
-  },[reportRows,search,branchFilter,groupFilter,subCatFilter,sectionFilter,statusFilter,getBranchNameById]);
+  const assignedUserOptions = useMemo(() => {
+  let data = employees;
+
+  if (branchFilter) {
+    const bName = getBranchNameById(branchFilter);
+    data = data.filter(
+      (emp) => String(emp.branch || "").trim() === String(bName || "").trim()
+    );
+  }
+
+  const names = new Set(
+    data
+      .map((emp) => String(emp.full_name || "").trim())
+      .filter(Boolean)
+  );
+
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
+}, [employees, branchFilter, getBranchNameById]);
   useEffect(()=>{if(assignedUserFilter&&!assignedUserOptions.includes(assignedUserFilter)) setAssignedUserFilter("");},[assignedUserFilter,assignedUserOptions]);
 
   const allSections = useMemo(()=>Array.from(new Set(reportRows.map(r=>r.section))).sort(),[reportRows]);
@@ -1117,9 +1142,12 @@ export default function BranchAssetsMasterReport() {
     if (sectionFilter) data=data.filter(r=>r.section===sectionFilter);
     if (statusFilter) data=data.filter(r=>r.status===statusFilter);
     if (assignedUserFilter) {
-      data=data.filter(r=>{
-        if (r.status!=="Active") return false;
-        return String(r.assignedUser||"")===assignedUserFilter;
+  data = data.filter((r) => {
+    if (r.status !== "Active") return false;
+        return (
+          String(r.assignedUser || "").trim().toLowerCase() ===
+          String(assignedUserFilter || "").trim().toLowerCase()
+        );
       });
     }
     if (!q) return data;
@@ -1537,10 +1565,24 @@ export default function BranchAssetsMasterReport() {
                       </div>
                       <div>
                         <label className="rpt-label">👤 Assigned User{branchFilter&&<span style={{color:NL_BLUE,fontWeight:600,marginLeft:4}}>(Branch filtered)</span>}</label>
-                        <select value={assignedUserFilter} onChange={e=>{setAssignedUserFilter(e.target.value);setCurrentPage(1);}} className="rpt-select">
-                          <option value="">All Users</option>
-                          {assignedUserOptions.map(u=><option key={u} value={u}>{u}</option>)}
-                        </select>
+                        <select
+                        className="rpt-select"
+                        value={assignedUserFilter}
+                        onChange={(e) => {
+                          setAssignedUserFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value="">
+                          {employeesLoading ? "Loading employees..." : "All Employees"}
+                        </option>
+
+                        {assignedUserOptions.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
                       </div>
                       <div>
                         <label className="rpt-label">● Status</label>

@@ -702,31 +702,29 @@ export default function AdminExpiry() {
                 </p>
               </div>
               <div className="nx-logo-col">
+              <button
+                onClick={() => navigate("/")}
+                title="Go Home"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 <img src={NepalLifeLogo} alt="Nepal Life" className="nx-logo" />
-                <div className="nx-live-badge">
-                  <span className="nx-live-dot" />
-                  Live Notifications
-                </div>
+              </button>
+
+              <div className="nx-live-badge">
+                <span className="nx-live-dot" />
+                Live Notifications
               </div>
             </div>
+            </div>
           </div>
-
-          {/* ── STAT BAR ── */}
-          <div className="nx-stat-bar">
-            {[
-              { v: stats.total,  l:"Total" },
-              { v: stats.unread, l:"Unread" },
-              { v: stats.expiry, l:"Expiry Alerts" },
-              { v: stats.read,   l:"Read" },
-              { v: viewRows.length, l:"Visible" },
-            ].map((s) => (
-              <div key={s.l} className="nx-stat-item">
-                <span className="nx-stat-num">{s.v}</span>
-                <div className="nx-stat-lbl">{s.l}</div>
-              </div>
-            ))}
-          </div>
-
           {/* ── CONTROLS ── */}
           <div className="nx-controls">
             {/* Filter pills */}
