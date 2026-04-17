@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import Footer from "../components/Layout/Footer";
 import Pagination from "../components/common/Pagination";
+import SplitSidebarLayout from "../components/Layout/SplitSidebarLayout";
 import * as XLSX from "xlsx";
 import NepalLifeLogo from "../assets/nepallife.png";
 
@@ -54,8 +55,8 @@ const PAGE_STYLES = `
     100%{opacity:1;transform:scale(1) translateY(0)}
   }
 
-  .em-root   { font-family:'DM Sans',sans-serif; background:var(--gray-50); min-height:100vh; color:var(--gray-900); }
-  .em-layout { display:flex; min-height:100vh; }
+  .em-root   { font-family:'DM Sans',sans-serif; background:var(--gray-50); max-height:90vh; color:var(--gray-900); }
+  .em-layout { display:flex; max-height:100vh; }
 
   .em-sidebar {
     background:linear-gradient(168deg,#0a1628 0%,#1a3050 45%,#0c1e33 100%);
@@ -321,20 +322,22 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
+/* ── Icon helper ── */
+const makeIcon = (d) => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
 
 const D = {
-  graph:
-    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
-  branch:
-    "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
-  assets:
-    "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
-  requests:
-    "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
-  users:
-    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
-  help:
-    "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
+  branch:   "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
+  assets:   "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
+  requests: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
+  help:     "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
+  graph:    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
+  users:    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  radar:    "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  scan:     "M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
 };
 
 function Ic({ d, size = 14 }) {
@@ -753,14 +756,16 @@ export default function Employee() {
     XLSX.writeFile(wb, "employee_import_sample.xlsx");
   };
 
+  /* ── nav items ── */
   const navItems = [
-    { label: "Analytics", path: "/assetdashboard", icon: D.graph },
-    { label: "Branches", path: "/branches", icon: D.branch },
-    { label: "Asset Master", path: "/branch-assets-report", icon: D.assets },
-    { label: "Requests", path: "/requests", icon: D.requests, show: isAdmin || isSubAdmin },
-    { label: "Users", path: "/admin/users", icon: D.users, show: isAdmin },
-    { label: "Help & Support", path: "/support", icon: D.help },
-  ].filter((l) => l.show !== false);
+    { label: "Analytics",      path: "/assetdashboard",       icon: makeIcon(D.graph) },
+    { label: "Branches",       path: "/branches",             icon: makeIcon(D.branch) },
+    { label: "Asset Master",   path: "/branch-assets-report", icon: makeIcon(D.assets) },
+    { label: "Requests",       path: "/requests",             icon: makeIcon(D.requests), show: isAdmin || isSubAdmin },
+    { label: "Users",          path: "/admin/users",          icon: makeIcon(D.users),    show: isAdmin },
+    { label: "Asset Tracking", path: "/asset-tracking",       icon: makeIcon(D.radar) },
+    { label: "Help & Support", path: "/support",              icon: makeIcon(D.help) },
+  ].filter(i => i.show !== false);
 
   if (!(isAdmin || isSubAdmin)) {
     return (
@@ -805,855 +810,662 @@ export default function Employee() {
   }
 
   return (
-    <div className="em-root">
-      <style>{FONTS}{PAGE_STYLES}</style>
+    <>
+     <SplitSidebarLayout
+            navItems={navItems}
+            user={user}
+          >
+      <div className="em-root">
+        <style>{FONTS}{PAGE_STYLES}</style>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        style={{ display: "none" }}
-        onChange={handleExcelSelect}
-      />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          style={{ display: "none" }}
+          onChange={handleExcelSelect}
+        />
 
-      <div className="em-layout">
-        {menuOpen && windowWidth < 1024 && (
-          <div className="em-mobile-overlay" onClick={() => setMenuOpen(false)} />
-        )}
-
-        <aside
-          className="em-sidebar"
-          style={{
-            width: swWidth(),
-            minHeight: "100vh",
-            position: windowWidth < 1024 ? "fixed" : "relative",
-            top: 0,
-            left: 0,
-            zIndex: 300,
-            height: windowWidth < 1024 ? "100vh" : "auto",
-          }}
-        >
-          {menuOpen && (
-            <div className="em-sidebar-inner">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 32,
-                }}
-              >
-                <div
-                  onClick={() => navigate("/")}
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <img
-                      src="https://play-lh.googleusercontent.com/zW5KMgLpmTvg0TA4xYIztb5HedXa6mqbAflXHBnNWix5kKetiqtR1ZOqNghuBtleiJkN"
-                      alt="NLI"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        objectFit: "cover",
-                        boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontFamily: "Syne,sans-serif",
-                        fontWeight: 800,
-                        fontSize: 18,
-                        letterSpacing: "-0.02em",
-                        color: "#1474f3ea",
-                      }}
-                    >
-                      Asset<span style={{ color: "#f31225ef" }}>IMS</span>
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.38)",
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    EMPLOYEE MASTER
-                  </div>
+        <div className="em-layout">
+          <main className="em-main">
+            <div className="em-topbar">
+              <div className="em-topbar-left">
+                <div style={{ width: 1, height: 20, background: "var(--gray-200)" }} />
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--gray-700)", fontFamily: "Outfit,sans-serif" }}>
+                  Employee Master
                 </div>
               </div>
 
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "rgba(255,255,255,0.28)",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  marginBottom: 8,
-                  paddingLeft: 4,
-                  fontFamily: "Outfit,sans-serif",
-                }}
-              >
-                Navigation
-              </div>
-
-              <nav style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 24 }}>
-                {navItems.map((item, idx) => (
-                  <button key={idx} className="em-nav-item" onClick={() => navigate(item.path)}>
-                    <span className="em-nav-icon">
-                      <Ic d={item.icon} size={14} />
-                    </span>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-
-              <div
-                style={{
-                  marginTop: "auto",
-                  paddingTop: 20,
-                  borderTop: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
+              <div className="em-topbar-right">
                 <div
                   style={{
-                    background: "linear-gradient(135deg,rgba(37,99,235,0.14),rgba(34,197,94,0.07))",
-                    border: "1px solid rgba(37,99,235,0.22)",
-                    borderRadius: 14,
-                    padding: 14,
-                    marginBottom: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    fontFamily: "Outfit,sans-serif",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    border: "1.5px solid var(--gray-200)",
+                    background: "var(--gray-100)",
+                    color: "var(--gray-700)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--green-500)",
+                      animation: "pulse 2s ease infinite",
+                    }}
+                  />
+                  {roleLabel}
+                </div>
+
+                <button className="em-btn em-btn-blue-outline em-btn-sm" onClick={fetchEmployees}>
+                  Refresh
+                </button>
+
+                <button className="em-btn em-btn-white em-btn-sm" onClick={downloadSample}>
+                  Download Sample
+                </button>
+
+                <button className="em-btn em-btn-success em-btn-sm" onClick={() => fileInputRef.current?.click()}>
+                  Import Employees
+                </button>
+
+                <button className="em-btn em-btn-primary em-btn-sm" onClick={openCreate}>
+                  Add Employee
+                </button>
+              </div>
+            </div>
+
+            <div className="em-panel-toggle-bar">
+              <button className={`em-toggle-pill${showPanel === "hero" ? " active" : ""}`} onClick={() => togglePanel("hero")}>
+                🏛️ Overview
+              </button>
+
+              <button className={`em-toggle-pill${showPanel === "filters" ? " active" : ""}`} onClick={() => togglePanel("filters")}>
+                🔍 Filters
+                {activeFiltersCount > 0 && <span className="pill-badge">{activeFiltersCount}</span>}
+              </button>
+
+              <div className="em-active-filters">
+                {q && (
+                  <span className="em-filter-chip">
+                    🔎 "{q.length > 18 ? q.slice(0, 18) + "…" : q}"
+                    <button onClick={() => setQ("")}>×</button>
+                  </span>
+                )}
+                {branchFilter && (
+                  <span className="em-filter-chip">
+                    🏢 {branchFilter}
+                    <button onClick={() => setBranchFilter("")}>×</button>
+                  </span>
+                )}
+                {departmentFilter && (
+                  <span className="em-filter-chip">
+                    🗂 {departmentFilter}
+                    <button onClick={() => setDepartmentFilter("")}>×</button>
+                  </span>
+                )}
+                {statusFilter && (
+                  <span className="em-filter-chip">
+                    📌 {statusFilter}
+                    <button onClick={() => setStatusFilter("")}>×</button>
+                  </span>
+                )}
+
+                {activeFiltersCount > 0 && (
+                  <button className="em-clear-all" onClick={clearFilters}>
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="em-badge em-badge-blue" style={{ fontSize: 11 }}>
+                  {filteredRows.length} / {totalEmployees}
+                </span>
+                <span className="em-badge em-badge-gray" style={{ fontSize: 11 }}>
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+
+            <div className={`em-collapsible-panel${showPanel === "hero" ? " open" : ""}`}>
+              <div className="em-filter-card" style={{ margin: "2px 2px 0" }}>
+                <EmployeeHero
+                  total={totalEmployees}
+                  activeCount={activeCount}
+                  inactiveCount={inactiveCount}
+                  branchCount={branchCount}
+                  deptCount={deptCount}
+                />
+              </div>
+
+              <div className="em-filter-card" style={{ margin: "10px 2px 0" }}>
+                <div className="em-stats-grid">
+                  <div className="em-stat-card" style={{ "--stat-bar": NL_BLUE }}>
+                    <div className="em-stat-icon" style={{ background: "var(--blue-50)", color: "var(--blue-700)" }}>👥</div>
+                    <div className="em-stat-value">{totalEmployees}</div>
+                    <div className="em-stat-label">Total Employees</div>
+                  </div>
+
+                  <div className="em-stat-card" style={{ "--stat-bar": "#16a34a" }}>
+                    <div className="em-stat-icon" style={{ background: "var(--green-50)", color: "var(--green-700)" }}>✅</div>
+                    <div className="em-stat-value">{activeCount}</div>
+                    <div className="em-stat-label">Active</div>
+                  </div>
+
+                  <div className="em-stat-card" style={{ "--stat-bar": "#6b7280" }}>
+                    <div className="em-stat-icon" style={{ background: "var(--gray-100)", color: "var(--gray-700)" }}>⏸</div>
+                    <div className="em-stat-value">{inactiveCount}</div>
+                    <div className="em-stat-label">Inactive</div>
+                  </div>
+
+                  <div className="em-stat-card" style={{ "--stat-bar": "#d97706" }}>
+                    <div className="em-stat-icon" style={{ background: "var(--amber-50)", color: "var(--amber-600)" }}>🏢</div>
+                    <div className="em-stat-value">{branchCount}</div>
+                    <div className="em-stat-label">Branches</div>
+                  </div>
+
+                  <div className="em-stat-card" style={{ "--stat-bar": "#7c3aed" }}>
+                    <div className="em-stat-icon" style={{ background: "var(--violet-50)", color: "var(--violet-700)" }}>🗂</div>
+                    <div className="em-stat-value">{deptCount}</div>
+                    <div className="em-stat-label">Departments</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`em-collapsible-panel${showPanel === "filters" ? " open" : ""}`}>
+              <div className="em-filter-card1" style={{ margin: "2px 2px 0" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
+                    gap: 14,
+                    alignItems: "end",
+                  }}
+                >
+                  <div style={{ gridColumn: "span 2", minWidth: 0 }}>
+                    <label className="em-label">🔎 Search Employees</label>
+                    <div className="em-search-wrap">
+                      <input
+                        type="text"
+                        placeholder="Code, name, email, branch, department..."
+                        className="em-input"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                      />
+                      <svg className="icon" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="em-label">🏢 Branch</label>
+                    <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="em-select">
+                      <option value="">All Branches</option>
+                      {branchOptions.map((branch) => (
+                        <option key={branch} value={branch}>{branch}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="em-label">🗂 Department</label>
+                    <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="em-select">
+                      <option value="">All Departments</option>
+                      {departmentOptions.map((department) => (
+                        <option key={department} value={department}>{department}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="em-label">📌 Status</label>
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="em-select">
+                      <option value="">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="em-label">📄 Rows per page</label>
+                    <select
+                      className="em-select"
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {[5, 10, 20, 50].map((n) => (
+                        <option key={n} value={n}>
+                          {n} per page
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="em-content">
+              {alert.message && (
+                <div className={`em-alert ${alert.type === "error" ? "em-alert-error" : "em-alert-success"}`} style={{ margin: "10px 2px 0" }}>
+                  {alert.type === "error" ? "⚠" : "✅"} {alert.message}
+                  <button
+                    onClick={() => setAlert({ type: "", message: "" })}
+                    style={{
+                      marginLeft: "auto",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "inherit",
+                      fontWeight: 800,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              <div className="em-table-card" style={{ overflowX: "auto", margin: "14px 2px 0" }}>
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid var(--gray-100)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
+                        width: 8,
+                        height: 8,
                         borderRadius: "50%",
-                        background: avatarColor(user?.name),
+                        background: loading ? "var(--amber-500)" : "var(--green-500)",
+                        boxShadow: `0 0 8px ${loading ? "rgba(245,158,11,0.6)" : "rgba(34,197,94,0.6)"}`,
+                        animation: loading ? "pulse 1s ease infinite" : "none",
+                      }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gray-700)", fontFamily: "Outfit,sans-serif" }}>
+                      {loading ? "Loading…" : `${filteredRows.length} of ${totalEmployees} employees`}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "var(--gray-400)", fontFamily: "Outfit,sans-serif" }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="em-empty">
+                    <Spinner size={36} />
+                    <p style={{ color: "var(--gray-500)", fontSize: 14, margin: 0 }}>Loading employees…</p>
+                  </div>
+                ) : filteredRows.length === 0 ? (
+                  <div className="em-empty">
+                    <div style={{ fontSize: 52 }}>👥</div>
+                    <p style={{ color: "var(--gray-700)", fontWeight: 700, fontSize: 15, margin: 0, fontFamily: "Outfit,sans-serif" }}>
+                      No employees found
+                    </p>
+                    <p style={{ color: "var(--gray-400)", fontSize: 12, margin: 0 }}>
+                      {activeFiltersCount > 0 ? "Try adjusting your filters" : "Add an employee to get started"}
+                    </p>
+                    {activeFiltersCount > 0 ? (
+                      <button className="em-btn em-btn-white" onClick={clearFilters}>
+                        Clear Filters
+                      </button>
+                    ) : (
+                      <button className="em-btn em-btn-success" onClick={openCreate}>
+                        + Add First Employee
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <table className="em-table">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Phone</th>
+                        <th>Branch</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedRows.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.employee_code || "—"}</td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div
+                                style={{
+                                  width: 38,
+                                  height: 38,
+                                  borderRadius: "50%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "white",
+                                  fontWeight: 800,
+                                  fontSize: 15,
+                                  flexShrink: 0,
+                                  background: avatarColor(row.full_name),
+                                }}
+                              >
+                                {(row.full_name || "?").charAt(0).toUpperCase()}
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    color: "var(--gray-900)",
+                                    fontSize: 13.5,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: 180,
+                                  }}
+                                >
+                                  {row.full_name || "—"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{row.email || "—"}</td>
+                          <td>{row.department || "—"}</td>
+                          <td>{row.designation || "—"}</td>
+                          <td>{row.phone || "—"}</td>
+                          <td>{row.branch || "—"}</td>
+                          <td><StatusBadge status={row.status} /></td>
+                          <td>
+                            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                              <button className="em-btn em-btn-sky-outline em-btn-sm" onClick={() => openEdit(row)}>
+                                Edit
+                              </button>
+                              <button className="em-btn em-btn-rose-outline em-btn-sm" onClick={() => deleteEmployee(row.id)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {filteredRows.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(p) => setCurrentPage(p)}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                  }}
+                  totalItems={filteredRows.length}
+                />
+              )}
+            </div>
+          </main>
+        </div>
+        {modalOpen && (
+          <div className="em-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeModal()}>
+            <div className="em-modal-panel">
+              <div className="em-modal-header" style={{ background: editing ? "linear-gradient(135deg,#f0f9ff,#dbeafe)" : NL_GRADIENT_90 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: editing ? "var(--gray-400)" : "rgba(255,255,255,0.6)",
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        marginBottom: 6,
+                        fontFamily: "Outfit,sans-serif",
+                      }}
+                    >
+                      {editing ? "Edit Employee" : "Create Employee"}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "Outfit,sans-serif",
+                        fontWeight: 800,
+                        fontSize: "clamp(1.1rem,3vw,1.4rem)",
+                        color: editing ? "var(--gray-900)" : "white",
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {editing ? `Edit: ${editing.full_name}` : "Add Employee to Master"}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={closeModal}
+                    className="em-btn em-btn-sm"
+                    style={{
+                      background: editing ? "var(--gray-100)" : "rgba(255,255,255,0.15)",
+                      border: editing ? "1.5px solid var(--gray-200)" : "1.5px solid rgba(255,255,255,0.25)",
+                      color: editing ? "var(--gray-600)" : "white",
+                      width: 36,
+                      height: 36,
+                      padding: 0,
+                      justifyContent: "center",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="em-modal-body">
+                <div className="em-form-block">
+                  <div className="em-form-block-header" style={{ background: "linear-gradient(135deg,#eff6ff,#dbeafe)" }}>
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 9,
+                        background: "linear-gradient(135deg,#2563eb,#6366f1)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "white",
-                        fontWeight: 800,
-                        fontSize: 16,
-                        flexShrink: 0,
+                        fontSize: 14,
                       }}
                     >
-                      {(user?.name || "U").charAt(0).toUpperCase()}
+                      👤
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "#f1f5f9",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {user?.name}
+                    <div>
+                      <div style={{ fontFamily: "Outfit,sans-serif", fontWeight: 800, fontSize: 13, color: "#1e3a8a" }}>
+                        Employee Details
                       </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          background: "linear-gradient(135deg,#60a5fa,#4ade80)",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          fontWeight: 700,
-                          letterSpacing: "0.06em",
-                          fontFamily: "Outfit,sans-serif",
-                        }}
-                      >
-                        {roleLabel}
+                      <div style={{ fontSize: 11, color: "#60a5fa" }}>Core identity and office information</div>
+                    </div>
+                  </div>
+
+                  <div className="em-form-block-body">
+                    <div className="em-form-grid-2">
+                      <div>
+                        <label className="em-label">Employee Code *</label>
+                        <input
+                          className="em-input"
+                          placeholder="EMP001"
+                          value={form.employee_code}
+                          onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Full Name *</label>
+                        <input
+                          className="em-input"
+                          placeholder="Ram Sharma"
+                          value={form.full_name}
+                          onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Email</label>
+                        <input
+                          className="em-input"
+                          placeholder="name@nepallife.com.np"
+                          value={form.email}
+                          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Department</label>
+                        <input
+                          className="em-input"
+                          placeholder="IT"
+                          value={form.department}
+                          onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Designation</label>
+                        <input
+                          className="em-input"
+                          placeholder="Officer"
+                          value={form.designation}
+                          onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Phone</label>
+                        <input
+                          className="em-input"
+                          placeholder="9800000001"
+                          value={form.phone}
+                          onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Branch</label>
+                        <input
+                          className="em-input"
+                          placeholder="Kathmandu"
+                          value={form.branch}
+                          onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="em-label">Status</label>
+                        <select
+                          className="em-select"
+                          value={form.status}
+                          onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <Link
-                  to="/register"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    color: "rgba(255,255,255,0.7)",
-                    borderRadius: 10,
-                    padding: "8px 14px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    fontFamily: "Outfit,sans-serif",
-                  }}
-                >
-                  + Register New User
-                </Link>
-              </div>
-            </div>
-          )}
-        </aside>
-
-        <main className="em-main">
-          <div className="em-topbar">
-            <div className="em-topbar-left">
-              <button className="em-btn em-btn-white em-btn-icon" onClick={() => setMenuOpen(!menuOpen)}>
-                {menuOpen ? (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-              </button>
-              <div style={{ width: 1, height: 20, background: "var(--gray-200)" }} />
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--gray-700)", fontFamily: "Outfit,sans-serif" }}>
-                Employee Master
-              </div>
-            </div>
-
-            <div className="em-topbar-right">
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 12px",
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  fontFamily: "Outfit,sans-serif",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  border: "1.5px solid var(--gray-200)",
-                  background: "var(--gray-100)",
-                  color: "var(--gray-700)",
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "var(--green-500)",
-                    animation: "pulse 2s ease infinite",
-                  }}
-                />
-                {roleLabel}
               </div>
 
-              <button className="em-btn em-btn-blue-outline em-btn-sm" onClick={fetchEmployees}>
-                Refresh
-              </button>
-
-              <button className="em-btn em-btn-white em-btn-sm" onClick={downloadSample}>
-                Download Sample
-              </button>
-
-              <button className="em-btn em-btn-success em-btn-sm" onClick={() => fileInputRef.current?.click()}>
-                Import Employees
-              </button>
-
-              <button className="em-btn em-btn-primary em-btn-sm" onClick={openCreate}>
-                Add Employee
-              </button>
-            </div>
-          </div>
-
-          <div className="em-panel-toggle-bar">
-            <button className={`em-toggle-pill${showPanel === "hero" ? " active" : ""}`} onClick={() => togglePanel("hero")}>
-              🏛️ Overview
-            </button>
-
-            <button className={`em-toggle-pill${showPanel === "filters" ? " active" : ""}`} onClick={() => togglePanel("filters")}>
-              🔍 Filters
-              {activeFiltersCount > 0 && <span className="pill-badge">{activeFiltersCount}</span>}
-            </button>
-
-            <div className="em-active-filters">
-              {q && (
-                <span className="em-filter-chip">
-                  🔎 "{q.length > 18 ? q.slice(0, 18) + "…" : q}"
-                  <button onClick={() => setQ("")}>×</button>
-                </span>
-              )}
-              {branchFilter && (
-                <span className="em-filter-chip">
-                  🏢 {branchFilter}
-                  <button onClick={() => setBranchFilter("")}>×</button>
-                </span>
-              )}
-              {departmentFilter && (
-                <span className="em-filter-chip">
-                  🗂 {departmentFilter}
-                  <button onClick={() => setDepartmentFilter("")}>×</button>
-                </span>
-              )}
-              {statusFilter && (
-                <span className="em-filter-chip">
-                  📌 {statusFilter}
-                  <button onClick={() => setStatusFilter("")}>×</button>
-                </span>
-              )}
-
-              {activeFiltersCount > 0 && (
-                <button className="em-clear-all" onClick={clearFilters}>
-                  Clear all
+              <div className="em-modal-footer">
+                <button className="em-btn em-btn-white" onClick={closeModal}>
+                  Cancel
                 </button>
-              )}
-            </div>
-
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="em-badge em-badge-blue" style={{ fontSize: 11 }}>
-                {filteredRows.length} / {totalEmployees}
-              </span>
-              <span className="em-badge em-badge-gray" style={{ fontSize: 11 }}>
-                {roleLabel}
-              </span>
-            </div>
-          </div>
-
-          <div className={`em-collapsible-panel${showPanel === "hero" ? " open" : ""}`}>
-            <div className="em-filter-card" style={{ margin: "2px 2px 0" }}>
-              <EmployeeHero
-                total={totalEmployees}
-                activeCount={activeCount}
-                inactiveCount={inactiveCount}
-                branchCount={branchCount}
-                deptCount={deptCount}
-              />
-            </div>
-
-            <div className="em-filter-card" style={{ margin: "10px 2px 0" }}>
-              <div className="em-stats-grid">
-                <div className="em-stat-card" style={{ "--stat-bar": NL_BLUE }}>
-                  <div className="em-stat-icon" style={{ background: "var(--blue-50)", color: "var(--blue-700)" }}>👥</div>
-                  <div className="em-stat-value">{totalEmployees}</div>
-                  <div className="em-stat-label">Total Employees</div>
-                </div>
-
-                <div className="em-stat-card" style={{ "--stat-bar": "#16a34a" }}>
-                  <div className="em-stat-icon" style={{ background: "var(--green-50)", color: "var(--green-700)" }}>✅</div>
-                  <div className="em-stat-value">{activeCount}</div>
-                  <div className="em-stat-label">Active</div>
-                </div>
-
-                <div className="em-stat-card" style={{ "--stat-bar": "#6b7280" }}>
-                  <div className="em-stat-icon" style={{ background: "var(--gray-100)", color: "var(--gray-700)" }}>⏸</div>
-                  <div className="em-stat-value">{inactiveCount}</div>
-                  <div className="em-stat-label">Inactive</div>
-                </div>
-
-                <div className="em-stat-card" style={{ "--stat-bar": "#d97706" }}>
-                  <div className="em-stat-icon" style={{ background: "var(--amber-50)", color: "var(--amber-600)" }}>🏢</div>
-                  <div className="em-stat-value">{branchCount}</div>
-                  <div className="em-stat-label">Branches</div>
-                </div>
-
-                <div className="em-stat-card" style={{ "--stat-bar": "#7c3aed" }}>
-                  <div className="em-stat-icon" style={{ background: "var(--violet-50)", color: "var(--violet-700)" }}>🗂</div>
-                  <div className="em-stat-value">{deptCount}</div>
-                  <div className="em-stat-label">Departments</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`em-collapsible-panel${showPanel === "filters" ? " open" : ""}`}>
-            <div className="em-filter-card1" style={{ margin: "2px 2px 0" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
-                  gap: 14,
-                  alignItems: "end",
-                }}
-              >
-                <div style={{ gridColumn: "span 2", minWidth: 0 }}>
-                  <label className="em-label">🔎 Search Employees</label>
-                  <div className="em-search-wrap">
-                    <input
-                      type="text"
-                      placeholder="Code, name, email, branch, department..."
-                      className="em-input"
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                    />
-                    <svg className="icon" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="em-label">🏢 Branch</label>
-                  <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="em-select">
-                    <option value="">All Branches</option>
-                    {branchOptions.map((branch) => (
-                      <option key={branch} value={branch}>{branch}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="em-label">🗂 Department</label>
-                  <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="em-select">
-                    <option value="">All Departments</option>
-                    {departmentOptions.map((department) => (
-                      <option key={department} value={department}>{department}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="em-label">📌 Status</label>
-                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="em-select">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="em-label">📄 Rows per page</label>
-                  <select
-                    className="em-select"
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {[5, 10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n} per page
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="em-content">
-            {alert.message && (
-              <div className={`em-alert ${alert.type === "error" ? "em-alert-error" : "em-alert-success"}`} style={{ margin: "10px 2px 0" }}>
-                {alert.type === "error" ? "⚠" : "✅"} {alert.message}
                 <button
-                  onClick={() => setAlert({ type: "", message: "" })}
+                  className="em-btn"
+                  onClick={saveEmployee}
+                  disabled={saving}
                   style={{
-                    marginLeft: "auto",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "inherit",
-                    fontWeight: 800,
+                    background: editing ? "linear-gradient(135deg,var(--sky-600),var(--blue-600))" : NL_GRADIENT,
+                    color: "white",
+                    boxShadow: editing
+                      ? "0 2px 12px rgba(2,132,199,0.3)"
+                      : "0 2px 12px rgba(11,92,171,0.3)",
                   }}
                 >
-                  ✕
+                  {saving ? "Saving..." : editing ? "Update Employee" : "Create Employee"}
                 </button>
               </div>
-            )}
-
-            <div className="em-table-card" style={{ overflowX: "auto", margin: "14px 2px 0" }}>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  borderBottom: "1px solid var(--gray-100)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: loading ? "var(--amber-500)" : "var(--green-500)",
-                      boxShadow: `0 0 8px ${loading ? "rgba(245,158,11,0.6)" : "rgba(34,197,94,0.6)"}`,
-                      animation: loading ? "pulse 1s ease infinite" : "none",
-                    }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gray-700)", fontFamily: "Outfit,sans-serif" }}>
-                    {loading ? "Loading…" : `${filteredRows.length} of ${totalEmployees} employees`}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, color: "var(--gray-400)", fontFamily: "Outfit,sans-serif" }}>
-                    Page {currentPage} of {totalPages}
-                  </span>
+            </div>
+          </div>
+        )}
+        {importModalOpen && (
+          <div className="em-modal-overlay" onClick={(e) => e.target === e.currentTarget && !importing && setImportModalOpen(false)}>
+            <div className="em-modal-panel" style={{ maxWidth: 900 }}>
+              <div className="em-modal-header" style={{ background: NL_GRADIENT_90 }}>
+                <div style={{ color: "white", fontFamily: "Outfit,sans-serif", fontWeight: 800, fontSize: "1.2rem" }}>
+                  Import Employees
                 </div>
               </div>
 
-              {loading ? (
-                <div className="em-empty">
-                  <Spinner size={36} />
-                  <p style={{ color: "var(--gray-500)", fontSize: 14, margin: 0 }}>Loading employees…</p>
-                </div>
-              ) : filteredRows.length === 0 ? (
-                <div className="em-empty">
-                  <div style={{ fontSize: 52 }}>👥</div>
-                  <p style={{ color: "var(--gray-700)", fontWeight: 700, fontSize: 15, margin: 0, fontFamily: "Outfit,sans-serif" }}>
-                    No employees found
-                  </p>
-                  <p style={{ color: "var(--gray-400)", fontSize: 12, margin: 0 }}>
-                    {activeFiltersCount > 0 ? "Try adjusting your filters" : "Add an employee to get started"}
-                  </p>
-                  {activeFiltersCount > 0 ? (
-                    <button className="em-btn em-btn-white" onClick={clearFilters}>
-                      Clear Filters
-                    </button>
-                  ) : (
-                    <button className="em-btn em-btn-success" onClick={openCreate}>
-                      + Add First Employee
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <table className="em-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Department</th>
-                      <th>Designation</th>
-                      <th>Phone</th>
-                      <th>Branch</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedRows.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.employee_code || "—"}</td>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div
-                              style={{
-                                width: 38,
-                                height: 38,
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "white",
-                                fontWeight: 800,
-                                fontSize: 15,
-                                flexShrink: 0,
-                                background: avatarColor(row.full_name),
-                              }}
-                            >
-                              {(row.full_name || "?").charAt(0).toUpperCase()}
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  color: "var(--gray-900)",
-                                  fontSize: 13.5,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  maxWidth: 180,
-                                }}
-                              >
-                                {row.full_name || "—"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{row.email || "—"}</td>
-                        <td>{row.department || "—"}</td>
-                        <td>{row.designation || "—"}</td>
-                        <td>{row.phone || "—"}</td>
-                        <td>{row.branch || "—"}</td>
-                        <td><StatusBadge status={row.status} /></td>
-                        <td>
-                          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                            <button className="em-btn em-btn-sky-outline em-btn-sm" onClick={() => openEdit(row)}>
-                              Edit
-                            </button>
-                            <button className="em-btn em-btn-rose-outline em-btn-sm" onClick={() => deleteEmployee(row.id)}>
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+              <div className="em-modal-body">
+                <p style={{ color: "#64748b", margin: 0 }}>
+                  Parsed <strong>{importRows.length}</strong> rows. Preview below.
+                </p>
 
-            {filteredRows.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={(p) => setCurrentPage(p)}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                totalItems={filteredRows.length}
-              />
-            )}
+                <div style={{ maxHeight: 320, overflow: "auto", border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#eff6ff" }}>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Code</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Name</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Email</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Department</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Branch</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.slice(0, 10).map((row, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.employee_code || "—"}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.full_name || "—"}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.email || "—"}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.department || "—"}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.branch || "—"}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.status || "active"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="em-modal-footer">
+                <button className="em-btn em-btn-white" onClick={() => setImportModalOpen(false)} disabled={importing}>
+                  Cancel
+                </button>
+                <button className="em-btn em-btn-success" onClick={handleImport} disabled={importing || importRows.length === 0}>
+                  {importing ? "Importing..." : "Import Now"}
+                </button>
+              </div>
+            </div>
           </div>
-        </main>
+        )}
       </div>
-
+      </SplitSidebarLayout>
       <Footer />
-
-      {modalOpen && (
-        <div className="em-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeModal()}>
-          <div className="em-modal-panel">
-            <div className="em-modal-header" style={{ background: editing ? "linear-gradient(135deg,#f0f9ff,#dbeafe)" : NL_GRADIENT_90 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: editing ? "var(--gray-400)" : "rgba(255,255,255,0.6)",
-                      letterSpacing: "0.15em",
-                      textTransform: "uppercase",
-                      marginBottom: 6,
-                      fontFamily: "Outfit,sans-serif",
-                    }}
-                  >
-                    {editing ? "Edit Employee" : "Create Employee"}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "Outfit,sans-serif",
-                      fontWeight: 800,
-                      fontSize: "clamp(1.1rem,3vw,1.4rem)",
-                      color: editing ? "var(--gray-900)" : "white",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {editing ? `Edit: ${editing.full_name}` : "Add Employee to Master"}
-                  </div>
-                </div>
-
-                <button
-                  onClick={closeModal}
-                  className="em-btn em-btn-sm"
-                  style={{
-                    background: editing ? "var(--gray-100)" : "rgba(255,255,255,0.15)",
-                    border: editing ? "1.5px solid var(--gray-200)" : "1.5px solid rgba(255,255,255,0.25)",
-                    color: editing ? "var(--gray-600)" : "white",
-                    width: 36,
-                    height: 36,
-                    padding: 0,
-                    justifyContent: "center",
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="em-modal-body">
-              <div className="em-form-block">
-                <div className="em-form-block-header" style={{ background: "linear-gradient(135deg,#eff6ff,#dbeafe)" }}>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 9,
-                      background: "linear-gradient(135deg,#2563eb,#6366f1)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                    }}
-                  >
-                    👤
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "Outfit,sans-serif", fontWeight: 800, fontSize: 13, color: "#1e3a8a" }}>
-                      Employee Details
-                    </div>
-                    <div style={{ fontSize: 11, color: "#60a5fa" }}>Core identity and office information</div>
-                  </div>
-                </div>
-
-                <div className="em-form-block-body">
-                  <div className="em-form-grid-2">
-                    <div>
-                      <label className="em-label">Employee Code *</label>
-                      <input
-                        className="em-input"
-                        placeholder="EMP001"
-                        value={form.employee_code}
-                        onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Full Name *</label>
-                      <input
-                        className="em-input"
-                        placeholder="Ram Sharma"
-                        value={form.full_name}
-                        onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Email</label>
-                      <input
-                        className="em-input"
-                        placeholder="name@nepallife.com.np"
-                        value={form.email}
-                        onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Department</label>
-                      <input
-                        className="em-input"
-                        placeholder="IT"
-                        value={form.department}
-                        onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Designation</label>
-                      <input
-                        className="em-input"
-                        placeholder="Officer"
-                        value={form.designation}
-                        onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Phone</label>
-                      <input
-                        className="em-input"
-                        placeholder="9800000001"
-                        value={form.phone}
-                        onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Branch</label>
-                      <input
-                        className="em-input"
-                        placeholder="Kathmandu"
-                        value={form.branch}
-                        onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="em-label">Status</label>
-                      <select
-                        className="em-select"
-                        value={form.status}
-                        onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="em-modal-footer">
-              <button className="em-btn em-btn-white" onClick={closeModal}>
-                Cancel
-              </button>
-              <button
-                className="em-btn"
-                onClick={saveEmployee}
-                disabled={saving}
-                style={{
-                  background: editing ? "linear-gradient(135deg,var(--sky-600),var(--blue-600))" : NL_GRADIENT,
-                  color: "white",
-                  boxShadow: editing
-                    ? "0 2px 12px rgba(2,132,199,0.3)"
-                    : "0 2px 12px rgba(11,92,171,0.3)",
-                }}
-              >
-                {saving ? "Saving..." : editing ? "Update Employee" : "Create Employee"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {importModalOpen && (
-        <div className="em-modal-overlay" onClick={(e) => e.target === e.currentTarget && !importing && setImportModalOpen(false)}>
-          <div className="em-modal-panel" style={{ maxWidth: 900 }}>
-            <div className="em-modal-header" style={{ background: NL_GRADIENT_90 }}>
-              <div style={{ color: "white", fontFamily: "Outfit,sans-serif", fontWeight: 800, fontSize: "1.2rem" }}>
-                Import Employees
-              </div>
-            </div>
-
-            <div className="em-modal-body">
-              <p style={{ color: "#64748b", margin: 0 }}>
-                Parsed <strong>{importRows.length}</strong> rows. Preview below.
-              </p>
-
-              <div style={{ maxHeight: 320, overflow: "auto", border: "1px solid #e5e7eb", borderRadius: 12 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#eff6ff" }}>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Code</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Name</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Email</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Department</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Branch</th>
-                      <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 12 }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importRows.slice(0, 10).map((row, idx) => (
-                      <tr key={idx}>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.employee_code || "—"}</td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.full_name || "—"}</td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.email || "—"}</td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.department || "—"}</td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.branch || "—"}</td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb", fontSize: 13 }}>{row.status || "active"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="em-modal-footer">
-              <button className="em-btn em-btn-white" onClick={() => setImportModalOpen(false)} disabled={importing}>
-                Cancel
-              </button>
-              <button className="em-btn em-btn-success" onClick={handleImport} disabled={importing || importRows.length === 0}>
-                {importing ? "Importing..." : "Import Now"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </>
   );
 }

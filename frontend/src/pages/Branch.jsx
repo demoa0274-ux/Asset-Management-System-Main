@@ -11,6 +11,7 @@ import Alert from "../components/common/Alert";
 import { SkeletonTable } from "../components/common/Loading";
 import Modal from "../components/common/Modal";
 import Pagination from "../components/common/Pagination";
+import SplitSidebarLayout from "../components/Layout/SplitSidebarLayout";
 import NepalLifeLogo from "../assets/nepallife.png";
 import "../styles/Pages.css";
 import * as XLSX from "xlsx";
@@ -60,56 +61,10 @@ const BRANCH_STYLES = `
   }
 
   /* ─── Layout ─── */
-  .bp-root { font-family:'DM Sans',sans-serif; background:var(--gray-50); min-height:100vh; color:var(--gray-900); }
-  .bp-layout { display:flex; min-height:100vh; }
+  .bp-root { font-family:'DM Sans',sans-serif; background:var(--gray-50); max-height:90vh; color:var(--gray-900); }
+  .bp-layout { display:flex; max-height:90vh; }
 
-  /* ─── Sidebar ─── */
-  .b-sidebar {
-    background:linear-gradient(168deg,#0a1628 0%,#1a3050 45%,#0c1e33 100%);
-    border-right:1px solid rgba(59,130,246,0.13);
-    box-shadow:5px 0 30px rgba(0,0,0,0.25);
-    position:relative; overflow:hidden;
-    transition:width 0.3s cubic-bezier(0.4,0,0.2,1);
-    flex-shrink:0;
-  }
-  .b-sidebar::before {
-    content:''; position:absolute; top:-70px; right:-50px;
-    width:180px; height:180px; border-radius:50%;
-    background:radial-gradient(circle,rgba(59,130,246,0.18) 0%,transparent 70%);
-    pointer-events:none;
-  }
-  .b-sidebar::after {
-    content:''; position:absolute; bottom:-50px; left:-30px;
-    width:140px; height:140px; border-radius:50%;
-    background:radial-gradient(circle,rgba(34,197,94,0.12) 0%,transparent 70%);
-    pointer-events:none;
-  }
-  .b-sidebar-inner {
-    height:100%; display:flex; flex-direction:column;
-    padding:26px 20px; min-width:220px; position:relative; z-index:1;
-  }
-  .b-nav-item {
-    display:flex; align-items:center; gap:11px;
-    padding:11px 14px; border-radius:13px;
-    background:transparent; border:1.5px solid transparent;
-    color:rgba(255,255,255,0.52); font-size:13.5px; font-weight:500;
-    cursor:pointer; text-align:left; width:100%;
-    transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
-    font-family:'DM Sans',sans-serif; letter-spacing:0.01em;
-  }
-  .b-nav-item:hover {
-    background:linear-gradient(135deg,rgba(59,130,246,0.16),rgba(34,197,94,0.08));
-    border-color:rgba(59,130,246,0.28);
-    color:#93c5fd; transform:translateX(5px);
-  }
-  .b-nav-icon {
-    width:30px; height:30px; border-radius:9px;
-    background:rgba(255,255,255,0.07);
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:14px; flex-shrink:0; transition:background 0.2s;
-  }
-  .b-nav-item:hover .b-nav-icon { background:rgba(59,130,246,0.2); }
-
+ 
   /* ─── Main ─── */
   .bp-main { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
   .bp-topbar {
@@ -120,7 +75,7 @@ const BRANCH_STYLES = `
   }
   .bp-topbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .bp-topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .bp-content { flex:1; padding:0 4px; overflow-y:auto; }
+  .bp-content { flex:1; padding:7px 4px; overflow-y:auto; }
 
   /* ─── Panel Toggle Bar ─── */
   .bp-panel-toggle-bar {
@@ -237,7 +192,7 @@ const BRANCH_STYLES = `
   }
   .bp-table { width:100%; border-collapse:collapse; }
   .bp-table thead th {
-    padding:12px 16px; text-align:left; font-size:10.5px; font-weight:700;
+    padding:12px 16px; text-align:left; font-size:10.5px; font-weight:700 margin-top:10px;
     color:rgba(255,255,255,0.92); text-transform:uppercase; letter-spacing:0.09em;
     white-space:nowrap; font-family:'Outfit',sans-serif;
     background:${NL_BLUE};
@@ -367,15 +322,14 @@ const BRANCH_STYLES = `
 
   @media(max-width:1024px) {
     .b-sidebar { position:fixed; top:0; left:0; height:100vh; z-index:100; }
-    .bp-content { padding:3px; }
+    .bp-content { padding:7px 5px; }
   }
   @media(max-width:640px) {
     .bp-topbar { padding:8px 10px; }
-    .bp-content { padding:1px; }
+    .bp-content { padding: 7px 5px; }
     .bp-table thead th, .bp-table tbody td { padding:10px 12px; font-size:12px; }
   }
 `;
-
 /* ─── Hero Component ─── */
 function NepalLifeHero() {
   return (
@@ -583,13 +537,25 @@ function Ic({ d, size = 15 }) {
 }
 
 const D = {
-  branch:   "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
-  assets:   "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
-  requests: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
-  help:     "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
-  graph:    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
-  users:    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  branch:
+    "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
+  assets:
+    "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
+  requests:
+    "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
+  help:
+    "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
+  graph:
+    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
+  users:
+    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
 };
+
+const makeIcon = (d) => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
 /* ─── Main Component ─── */
 export default function Branch({ embedded = false, onPickBranch = null, hideFooter = false }) {
   const { token, isAdmin, isSubAdmin, user } = useAuth();
@@ -906,13 +872,14 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
   };
 
     const navItems = [
-      { label: "Analytics",      path: "/assetdashboard",       icon: D.graph },
-      { label: "Branches",       path: "/branches",             icon: D.branch },
-      { label: "Asset Master",   path: "/branch-assets-report", icon: D.assets },
-      { label: "Requests",       path: "/requests",             icon: D.requests, show: isAdmin || isSubAdmin },
-      { label: "Users",          path: "/admin/users",          icon: D.users, show: isAdmin },
-      { label: "Help & Support", path: "/support",              icon: D.help },
-    ].filter((l) => l.show !== false);
+  { label: "Analytics", path: "/assetdashboard", icon: makeIcon(D.graph) },
+  { label: "Branches", path: "/branches", icon: makeIcon(D.branch) },
+  { label: "Asset Master", path: "/branch-assets-report", icon: makeIcon(D.assets) },
+  { label: "Requests", path: "/requests", icon: makeIcon(D.requests), show: isAdmin || isSubAdmin },
+  { label: "Users", path: "/admin/users", icon: makeIcon(D.users), show: isAdmin },
+  { label: "Asset Tracking", path: "/asset-tracking", icon: makeIcon(D.graph) },
+  { label: "Help & Support", path: "/support", icon: makeIcon(D.help) },
+].filter((item) => item.show !== false);
 
   if (loading && allBranches.length === 0) {
     return embedded ? (
@@ -928,63 +895,21 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
   }
 
   return (
+    <>
+      <SplitSidebarLayout
+        navItems={navItems}
+        user={user}
+        brand={{ initials: "NL", name: "Nepal Life", subtext: "Asset IMS" }}
+      >
     <div className="bp-root">
       <style>{FONTS}{BRANCH_STYLES}</style>
       <div className="bp-layout">
-
-        {menuOpen && windowWidth < 1024 && <div className="bp-mobile-overlay" onClick={() => setMenuOpen(false)} />}
-
-        {/* ─── SIDEBAR ─── */}
-        <aside className="b-sidebar" style={{ width:sidebarWidth(), minHeight:"100vh", position:windowWidth<1024?"fixed":"relative", top:0, left:0, zIndex:300, height:windowWidth<1024?"100vh":"auto" }}>
-          {menuOpen && (
-            <div className="b-sidebar-inner">
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:32 }}>
-                <div onClick={() => navigate("/")} style={{ cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-                    <img src="https://play-lh.googleusercontent.com/zW5KMgLpmTvg0TA4xYIztb5HedXa6mqbAflXHBnNWix5kKetiqtR1ZOqNghuBtleiJkN" alt="NLI" style={{ width:36, height:36, borderRadius:8, objectFit:"cover", boxShadow:"0 2px 10px rgba(0,0,0,0.4)" }} />
-                    <span style={{ fontFamily:"Syne,sans-serif", fontWeight:800, fontSize:18, letterSpacing:"-0.02em", color:"#1474f3ea" }}>Asset<span style={{ color:"#f31225ef" }}>IMS</span></span>
-                  </div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.38)", fontWeight:600, letterSpacing:"0.06em" }}>BRANCH MANAGEMENT</div>
-                </div>
-              </div>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.28)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:8, paddingLeft:4, fontFamily:"Outfit,sans-serif" }}>Navigation</div>
-              <nav style={{ display:"flex", flexDirection:"column", gap:4, marginBottom:24 }}>
-                {navItems.map((item, idx) => (
-                    <button key={idx} className="b-nav-item" onClick={() => navigate(item.path)}>
-                      <span className="b-nav-icon">
-                        <Ic d={item.icon} size={14} />
-                      </span>
-                      {item.label}
-                    </button>
-                  ))}
-              </nav>
-              <div style={{ marginTop:"auto", paddingTop:20, borderTop:"1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ background:"linear-gradient(135deg,rgba(37,99,235,0.14),rgba(34,197,94,0.07))", border:"1px solid rgba(37,99,235,0.22)", borderRadius:14, padding:14 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ width:40, height:40, borderRadius:"50%", background:"linear-gradient(135deg,#2563eb,#22c55e)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:16, flexShrink:0 }}>
-                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:"#f1f5f9", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.name}</div>
-                      <div style={{ fontSize:10, background:"linear-gradient(135deg,#60a5fa,#4ade80)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", fontWeight:700, letterSpacing:"0.06em", fontFamily:"Outfit,sans-serif" }}>{roleLabel}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
 
         {/* ─── MAIN ─── */}
         <main className="bp-main">
           {/* ─── Topbar ─── */}
           <div className="bp-topbar">
             <div className="bp-topbar-left">
-              <button className="bp-btn bp-btn-white bp-btn-icon" onClick={() => setMenuOpen(!menuOpen)} title="Toggle Menu">
-                {menuOpen
-                  ? <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  : <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
-              </button>
               <div style={{ width:1, height:20, background:"var(--gray-200)" }} />
               <div style={{ fontSize:13, fontWeight:700, color:"var(--gray-700)", fontFamily:"Outfit,sans-serif" }}>Branch Management</div>
             </div>
@@ -1395,7 +1320,9 @@ export default function Branch({ embedded = false, onPickBranch = null, hideFoot
           </div>
         </main>
       </div>
-      {!hideFooter && !embedded && <Footer />}
     </div>
+      </SplitSidebarLayout>
+      {!hideFooter && !embedded && <Footer />}
+      </>
   );
 }

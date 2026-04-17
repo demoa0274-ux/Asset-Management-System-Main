@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import NepalLifeLogo from "../assets/nepallife.png";
 import { useAuth } from "../context/AuthContext";
 import Footer from "../components/Layout/Footer";
+import SplitSidebarLayout from "../components/Layout/SplitSidebarLayout";
 
-const API_BASE = "http://192.168.0.50:5001";
+const API_BASE = "http://192.168.0.244:5000";
 
 /* ── Brand ── */
 const NL_BLUE        = "#0B5CAB";
@@ -65,8 +66,8 @@ const PAGE_STYLES = `
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
-  .fl-root{font-family:'DM Sans',sans-serif;background:var(--gray-50);min-height:100vh;color:var(--gray-900);}
-  .fl-layout{display:flex;min-height:100vh;}
+  .fl-root{font-family:'DM Sans',sans-serif;background:var(--gray-50);max-height:90vh;color:var(--gray-900);}
+  .fl-layout{display:flex;max-height:100vh;}
 
   /* ── Sidebar ── */
   .fl-sidebar{
@@ -357,6 +358,12 @@ function Ic({ d, size = 15 }) {
     </svg>
   );
 }
+/* ── Icon helper ── */
+const makeIcon = (d) => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
 
 const D = {
   branch:   "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
@@ -365,6 +372,8 @@ const D = {
   help:     "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
   graph:    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
   users:    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  radar:    "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  scan:     "M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
 };
 
 const Spinner = ({ size = 28 }) => <div className="fl-spinner" style={{ width: size, height: size }} />;
@@ -819,76 +828,29 @@ export default function FileLibraryPage() {
   }[userRole] || {});
 
   const navItems = [
-    { label: "Analytics",      path: "/assetdashboard",       icon: D.graph },
-    { label: "Branches",       path: "/branches",             icon: D.branch },
-    { label: "Asset Master",   path: "/branch-assets-report", icon: D.assets },
-    { label: "Requests",       path: "/requests",             icon: D.requests, show: isAdmin || isSubAdmin },
-    { label: "Users",          path: "/admin/users",          icon: D.users,    show: isAdmin },
-    { label: "Help & Support", path: "/support",              icon: D.help },
-  ].filter(l => l.show !== false);
+    { label: "Analytics",      path: "/assetdashboard",       icon: makeIcon(D.graph) },
+    { label: "Branches",       path: "/branches",             icon: makeIcon(D.branch) },
+    { label: "Asset Master",   path: "/branch-assets-report", icon: makeIcon(D.assets) },
+    { label: "Requests",       path: "/requests",             icon: makeIcon(D.requests), show: isAdmin || isSubAdmin },
+    { label: "Users",          path: "/admin/users",          icon: makeIcon(D.users),    show: isAdmin },
+    { label: "Asset Tracking", path: "/asset-tracking",       icon: makeIcon(D.radar) },
+    { label: "Help & Support", path: "/support",              icon: makeIcon(D.help) },
+  ].filter(i => i.show !== false);
 
   return (
+    <>
+    <SplitSidebarLayout
+                navItems={navItems}
+                user={user}
+              >
     <div className="fl-root">
       <style>{FONTS}{PAGE_STYLES}</style>
-
       <div className="fl-layout">
-        {menuOpen && winW < 1024 && <div className="fl-mobile-overlay" onClick={() => setMenuOpen(false)} />}
-
-        {/* ═══ SIDEBAR ═══ */}
-        <aside className="fl-sidebar" style={{ width: swWidth(), minHeight: "100vh", position: winW < 1024 ? "fixed" : "relative", top: 0, left: 0, zIndex: 300, height: winW < 1024 ? "100vh" : "auto" }}>
-          {menuOpen && (
-            <div className="fl-sidebar-inner">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
-                <div onClick={() => navigate("/")} style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <img src="https://play-lh.googleusercontent.com/zW5KMgLpmTvg0TA4xYIztb5HedXa6mqbAflXHBnNWix5kKetiqtR1ZOqNghuBtleiJkN" alt="NLI" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", boxShadow: "0 2px 10px rgba(0,0,0,0.4)" }} />
-                    <span style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", color: "#1474f3ea" }}>Asset<span style={{ color: "#f31225ef" }}>IMS</span></span>
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", fontWeight: 600, letterSpacing: "0.06em" }}>FILE LIBRARY</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.28)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, paddingLeft: 4, fontFamily: "Outfit,sans-serif" }}>Navigation</div>
-              <nav style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 24 }}>
-                {navItems.map((item, idx) => (
-                  <button key={idx} className="fl-nav-item" onClick={() => navigate(item.path)}>
-                    <span className="fl-nav-icon"><Ic d={item.icon} size={14} /></span>
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-              <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ background: "linear-gradient(135deg,rgba(37,99,235,0.14),rgba(34,197,94,0.07))", border: "1px solid rgba(37,99,235,0.22)", borderRadius: 14, padding: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#22c55e)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0 }}>
-                      {(user?.name || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {user?.name || "Document Library"}
-                      </div>
-                      <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", borderRadius: 999, padding: "2px 8px", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", fontFamily: "Outfit,sans-serif", textTransform: "uppercase", ...roleBadge }}>
-                        {userRole}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
-
         {/* ═══ MAIN ═══ */}
         <main className="fl-main">
-
           {/* ── Topbar ── */}
           <div className="fl-topbar">
             <div className="fl-topbar-left">
-              <button className="fl-btn fl-btn-white fl-btn-icon" onClick={() => setMenuOpen(!menuOpen)}>
-                {menuOpen
-                  ? <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  : <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
-              </button>
-              <div style={{ width: 1, height: 20, background: "var(--gray-200)" }} />
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--gray-700)", fontFamily: "Outfit,sans-serif" }}>File Library</div>
               {branchesLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--gray-400)" }}>
@@ -1227,7 +1189,53 @@ export default function FileLibraryPage() {
                       </div>
                     </div>
                   </div>
-                </div>                
+                </div>
+
+                {/* ── Branch block: uses ALL api branches ── */}
+                <div className="fl-form-block">
+                  <div className="fl-form-block-header" style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>🏢</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: "Outfit,sans-serif", fontWeight: 800, fontSize: 13, color: "#7f1d1d" }}>Branch Assignment</div>
+                      <div style={{ fontSize: 11, color: "#fca5a5" }}>
+                        {branchesLoading
+                          ? "Loading branches from API…"
+                          : apiBranches.length > 0
+                            ? `${apiBranches.length} branches available`
+                            : "No branches found"}
+                      </div>
+                    </div>
+                    {branchesLoading && <div className="fl-spinner" style={{ width: 16, height: 16, borderTopColor: "#ef4444" }} />}
+                  </div>
+                  <div className="fl-form-block-body">
+                    <div>
+                      <label className="fl-label">🏢 Branch</label>
+                      <BranchSelect
+                        value={form.branch}
+                        onChange={e => setForm(p => ({ ...p, branch: e.target.value }))}
+                        branches={apiBranches}
+                        loading={branchesLoading}
+                        placeholder="Select branch"
+                        className="fl-select"
+                      />
+                      {form.branch && (
+                        <div style={{ marginTop: 6, fontSize: 11, color: "var(--blue-700)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          ✓ Assigned to: <strong>{form.branch}</strong>
+                        </div>
+                      )}
+                    </div>
+                    {/* Retry if no branches loaded */}
+                    {!branchesLoading && apiBranches.length === 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--amber-50)", border: "1.5px solid var(--amber-100)", borderRadius: "var(--radius)" }}>
+                        <span style={{ fontSize: 16 }}>⚠️</span>
+                        <span style={{ fontSize: 12, color: "var(--amber-600)", flex: 1 }}>Could not load branches.</span>
+                        <button type="button" className="fl-btn fl-btn-sm" style={{ background: "var(--amber-500)", color: "white", fontSize: 11 }} onClick={fetchApiBranches}>
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* ── Description block ── */}
                 <div className="fl-form-block">
@@ -1256,7 +1264,9 @@ export default function FileLibraryPage() {
           </div>
         </div>
       )}
-      <Footer />
     </div>
+    </SplitSidebarLayout>
+    <Footer />
+    </>
   );
 }

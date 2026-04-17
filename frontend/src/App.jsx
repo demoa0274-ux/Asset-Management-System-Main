@@ -9,6 +9,7 @@ import Branch from './pages/Branch';
 import BranchDetails from './pages/BranchDetails.jsx';
 import RequestPage from './pages/RequestPage'; 
 import SupportPage from "./pages/SupportPage.jsx";
+import AssetTrackingPage from "./pages/AssetTrackingPage";
 import AssetMaintenanceLogs from "./pages/AssetMaintenanceLogs";
 import BranchAssetsReport from "./pages/BranchAssetsMasterReport.jsx";
 import AdminUsers from "./pages/AdminUsers";
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="support" element={<SupportPage />} />
         <Route path="maintenance" element={<AssetMaintenanceLogs />} />
         <Route path="admin/users" element={<AdminUsers />} />
+        <Route path="asset-tracking" element={<AssetTrackingPage />} />
         <Route path="admin/expiry" element={<AdminExpiry />} />
         <Route path="assetdashboard" element={<AssetDashboard/>}/>
         <Route path="/employees-master" element={<Employee />} />

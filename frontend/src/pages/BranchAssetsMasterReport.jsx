@@ -12,6 +12,7 @@ import "../styles/Pages.css";
 import * as XLSX from "xlsx";
 import EXCEL_HEADERS from "../utils/excelHeaders";
 import NepalLifeLogo from "../assets/nepallife.png";
+import SplitSidebarLayout from "../components/Layout/SplitSidebarLayout";
 
 /* ─── Fonts ─── */
 const FONTS = `
@@ -122,8 +123,8 @@ const REPORT_STYLES = `
   .collapsible-panel.open{max-height:800px;opacity:1;}
 
   /* ══ LAYOUT ══ */
-  .ar-root{font-family:'DM Sans',sans-serif;background:var(--gray-50);min-height:100vh;color:var(--gray-900);}
-  .ar-layout{display:flex;min-height:100vh;}
+  .ar-root{font-family:'DM Sans',sans-serif;background:var(--gray-50);max-height:100vh;color:var(--gray-900);}
+  .ar-layout{display:flex;max-height:100vh;}
   .rpt-sidebar{background:linear-gradient(170deg,#0f172a 0%,#1e3a5f 50%,#0d2137 100%);border-right:1px solid rgba(59,130,246,0.15);box-shadow:6px 0 32px rgba(0,0,0,0.28);position:relative;overflow:hidden;}
   .rpt-sidebar::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.15) 0%,transparent 70%);pointer-events:none;}
   .rpt-sidebar::after{content:'';position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(34,197,94,0.10) 0%,transparent 70%);pointer-events:none;}
@@ -285,6 +286,11 @@ const REPORT_STYLES = `
   @media(max-width:480px){.ar-topbar-center{display:none;}.ar-btn:not(.ar-btn-icon) span.btn-label{display:none;}.nl-hero-stats{grid-template-columns:1fr 1fr;}}
   @media(max-width:360px){.nl-hero-stats{grid-template-columns:1fr;}}
 `;
+const makeIcon = (d) => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
 
 /* ─── Utilities ─── */
 const safeArray = v => (!v ? [] : Array.isArray(v) ? v : [v]);
@@ -908,12 +914,14 @@ function Ic({d,size=15}) {
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>);
 }
 const D = {
-  branch:"M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
-  assets:"M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
-  requests:"M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
-  help:"M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
-  graph:"M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
-  users:"M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  branch:   "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75",
+  assets:   "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375",
+  requests: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
+  help:     "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
+  graph:    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
+  users:    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  radar:    "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  scan:     "M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
 };
 
 /* ════════════════════════════════
@@ -1355,14 +1363,15 @@ const [employeesLoading, setEmployeesLoading] = useState(false);
 
   const detailPairs=useMemo(()=>{if(!detailRow) return [];return buildDetailPairs(detailRow.section,detailRow.details,detailRow);},[detailRow]);
 
-  const navItems=[
-    {label:"Analytics",path:"/assetdashboard",icon:D.graph},
-    {label:"Branches",path:"/branches",icon:D.branch},
-    {label:"Asset Master",path:"/branch-assets-report",icon:D.assets},
-    {label:"Requests",path:"/requests",icon:D.requests,show:isAdmin||isSubAdmin},
-    {label:"Users",path:"/admin/users",icon:D.users,show:isAdmin},
-    {label:"Help & Support",path:"/support",icon:D.help},
-  ].filter(l=>l.show!==false);
+    const navItems = [
+    { label: "Analytics",      path: "/assetdashboard",       icon: makeIcon(D.graph) },
+    { label: "Branches",       path: "/branches",             icon: makeIcon(D.branch) },
+    { label: "Asset Master",   path: "/branch-assets-report", icon: makeIcon(D.assets) },
+    { label: "Requests",       path: "/requests",             icon: makeIcon(D.requests), show: isAdmin || isSubAdmin },
+    { label: "Users",          path: "/admin/users",          icon: makeIcon(D.users),    show: isAdmin },
+    { label: "Asset Tracking", path: "/asset-tracking",       icon: makeIcon(D.radar) },
+    { label: "Help & Support", path: "/support",              icon: makeIcon(D.help) },
+  ].filter(i => i.show !== false);
 
   const clearFilters=()=>{setSearch("");setBranchFilter("");setGroupFilter("");setSubCatFilter("");setSectionFilter("");setStatusFilter("");setAssignedUserFilter("");setCurrentPage(1);fetchSubCats("");setTotalInfo({count:0,branch:"All Branches",group:"All Categories",subCategory:"All Sub Categories"});closeDetail();setSortField("assetId");setSortDir("asc");};
 
@@ -1404,72 +1413,16 @@ const [employeesLoading, setEmployeesLoading] = useState(false);
     <>
       <style>{FONTS}{REPORT_STYLES}</style>
       <div className="ar-root">
+          <SplitSidebarLayout
+        navItems={navItems}
+        user={user}
+        brand={{ initials: "NL", name: "Nepal Life", subtext: "Asset IMS" }}
+      >
         <div className="ar-layout">
-          {menuOpen&&windowWidth<1024&&<div className="ar-mobile-overlay" onClick={()=>setMenuOpen(false)}/>}
-
-          {/* SIDEBAR */}
-          <aside className="rpt-sidebar" style={{width:sidebarWidth(),minHeight:"100vh",transition:"width 0.3s cubic-bezier(0.4,0,0.2,1)",flexShrink:0,overflow:"hidden",position:windowWidth<1024?"fixed":"relative",top:0,left:0,zIndex:300,height:windowWidth<1024?"100vh":"auto"}}>
-            {menuOpen&&(
-              <div style={{height:"100%",display:"flex",flexDirection:"column",padding:"clamp(16px,2.5vw,26px) clamp(14px,2vw,22px)",minWidth:220,position:"relative",zIndex:1}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"clamp(20px,3vw,30px)"}}>
-                  <div onClick={()=>navigate("/")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-                    <img src="https://play-lh.googleusercontent.com/zW5KMgLpmTvg0TA4xYIztb5HedXa6mqbAflXHBnNWix5kKetiqtR1ZOqNghuBtleiJkN" alt="Logo" style={{width:34,height:34,borderRadius:8,objectFit:"cover",boxShadow:"0 2px 10px rgba(0,0,0,0.4)"}}/>
-                    <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:15,letterSpacing:"-0.02em",color:"#1474f3ea"}}>Asset<span style={{color:"#f31225ef"}}>IMS</span></span>
-                  </div>
-                  <button className="rpt-nav-btn" style={{width:"auto",padding:"6px 9px",borderRadius:9}} onClick={()=>setMenuOpen(false)}>
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-                  </button>
-                </div>
-                <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:9,paddingLeft:3}}>Navigation</div>
-                <nav style={{display:"flex",flexDirection:"column",gap:3,marginBottom:18}}>
-                  {navItems.map((item,idx)=>(
-                    <button key={idx} onClick={()=>navigate(item.path)} className="rpt-nav-btn">
-                      <span style={{width:26,height:26,borderRadius:7,background:"rgba(255,255,255,0.06)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}><Ic d={item.icon} size={14}/></span>
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-                {sectionCounts.length>0&&(
-                  <div style={{marginBottom:14}}>
-                    <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,paddingLeft:3}}>Asset Breakdown</div>
-                    <div style={{maxHeight:190,overflowY:"auto"}}>
-                      {sectionCounts.map(([sec,cnt])=>(
-                        <div key={sec} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 7px",borderRadius:8,cursor:"pointer",transition:"background 0.15s",marginBottom:2}}
-                          onClick={()=>{setSectionFilter(sectionFilter===sec?"":sec);setCurrentPage(1);}}
-                          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
-                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          <span style={{fontSize:11,color:sectionFilter===sec?"#60a5fa":"rgba(255,255,255,0.5)",display:"flex",alignItems:"center",gap:5}}>{SECTION_ICONS[sec]||"📦"} {sec}</span>
-                          <span style={{fontFamily:"Outfit,sans-serif",fontWeight:700,fontSize:11,color:"#60a5fa",background:"rgba(37,99,235,0.15)",padding:"1px 7px",borderRadius:999}}>{cnt}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div style={{marginTop:"auto",paddingTop:18,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
-                  <div style={{background:"linear-gradient(135deg,rgba(37,99,235,0.12),rgba(34,197,94,0.06))",border:"1px solid rgba(37,99,235,0.2)",borderRadius:13,padding:"clamp(10px,1.5vw,15px)"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:38,height:38,borderRadius:"50%",background:NL_GRADIENT,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{user?.name?.charAt(0)?.toUpperCase()||"U"}</div>
-                      <div style={{minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.name}</div>
-                        <div style={{fontSize:10,background:"linear-gradient(135deg,#60a5fa,#4ade80)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:700,letterSpacing:"0.06em"}}>{roleLabel}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
-
           {/* MAIN */}
           <section className="ar-main">
             <div className="ar-topbar">
-              <div className="ar-topbar-left">
-                <button className="ar-btn ar-btn-white ar-btn-icon" onClick={()=>setMenuOpen(!menuOpen)}>
-                  {menuOpen?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-                  :<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>}
-                </button>
-                {activeBranchName&&(<button className="ar-btn ar-btn-sm" style={{background:"#eff6ff",border:`1.5px solid ${NL_BLUE}44`,color:NL_BLUE}} onClick={()=>navigate("/branches")}>← Branches</button>)}
-              </div>
+             
               <div className="ar-topbar-center">
                 <h1 className="ar-page-title" style={{color:NL_BLUE}}>Asset Master <span style={{color:NL_RED}}>Report</span></h1>
                 <div className="ar-page-sub">{totalItems.toLocaleString()} assets · {allSections.length} sections{activeBranchName&&<span style={{color:NL_BLUE,fontWeight:600}}> · {activeBranchName}</span>}</div>
@@ -2031,6 +1984,7 @@ const [employeesLoading, setEmployeesLoading] = useState(false);
             </div>
           </section>
         </div>
+      </ SplitSidebarLayout>
         <Footer/>
       </div>
 

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { Pie, Bar, Line, Doughnut, Radar, PolarArea } from "react-chartjs-2";
+import SplitSidebarLayout from "../components/Layout/SplitSidebarLayout";
+
 import {
   Chart as ChartJS,
   ArcElement,
@@ -106,14 +108,16 @@ const STYLES = `
   .ad-root {
     font-family: "DM Sans", sans-serif;
     background: var(--gray-50);
-    min-height: 100vh;
+    max-height: 100vh;
+    border-radius: var(--radius-lg);
     display: flex;
   }
 
   .ad-layout {
     display: flex;
     width: 100%;
-    min-height: 100vh;
+    border-radius: var(--radius-lg);
+    max-height: 90vh;
   }
 
   .ad-sidebar {
@@ -690,6 +694,14 @@ const STYLES = `
     padding: 7px 14px;
     font-size: 12px;
   }
+    .ad-filter {
+      position: relative;
+      z-index: 300;
+    }
+    .rs-nl {
+      position: relative;
+      z-index: 400;
+    }
 
   .rs-nl .react-select__control {
     border-radius: 12px !important;
@@ -834,6 +846,13 @@ const STYLES = `
     }
   }
 `;
+
+/* ── Icon helper ── */
+const makeIcon = (d) => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
 
 /* ─── Helpers ─── */
 const safeArray = (v) => (!v ? [] : Array.isArray(v) ? v : [v]);
@@ -1296,6 +1315,8 @@ const D = {
   help:     "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z",
   graph:    "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
   users:    "M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z",
+  radar:    "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  scan:     "M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
 };
 
 export default function AssetDashboard() {
@@ -1532,13 +1553,14 @@ export default function AssetDashboard() {
   );
 
   const navItems = [
-    { label: "Analytics",      path: "/assetdashboard",       icon: D.graph },
-    { label: "Branches",       path: "/branches",             icon: D.branch },
-    { label: "Asset Master",   path: "/branch-assets-report", icon: D.assets },
-    { label: "Requests",       path: "/requests",             icon: D.requests, show: isAdmin || isSubAdmin },
-    { label: "Users",          path: "/admin/users",          icon: D.users, show: isAdmin },
-    { label: "Help & Support", path: "/support",              icon: D.help },
-  ].filter((l) => l.show !== false);
+    { label: "Analytics",      path: "/assetdashboard",       icon: makeIcon(D.graph) },
+    { label: "Branches",       path: "/branches",             icon: makeIcon(D.branch) },
+    { label: "Asset Master",   path: "/branch-assets-report", icon: makeIcon(D.assets) },
+    { label: "Requests",       path: "/requests",             icon: makeIcon(D.requests), show: isAdmin || isSubAdmin },
+    { label: "Users",          path: "/admin/users",          icon: makeIcon(D.users),    show: isAdmin },
+    { label: "Asset Tracking", path: "/asset-tracking",       icon: makeIcon(D.radar) },
+    { label: "Help & Support", path: "/support",              icon: makeIcon(D.help) },
+  ].filter(i => i.show !== false);
 
   if (!token) {
     return (
@@ -1607,294 +1629,14 @@ export default function AssetDashboard() {
   return (
     <>
       <style>{FONTS + STYLES}</style>
-
+      <SplitSidebarLayout
+              navItems={navItems}
+              user={user}
+            >
       <div className="ad-root">
         <div className="ad-layout">
-          {menuOpen && windowWidth < 1024 && (
-            <div className="ad-mobile-overlay" onClick={() => setMenuOpen(false)} />
-          )}
-
-          <aside
-            className="ad-sidebar"
-            style={{
-              width: sidebarWidth(),
-              minHeight: "100vh",
-              position: windowWidth < 1024 ? "fixed" : "relative",
-              top: 0,
-              left: 0,
-              zIndex: 300,
-              height: windowWidth < 1024 ? "100vh" : "auto",
-              overflow: "hidden",
-            }}
-          >
-            {menuOpen && (
-              <div
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  padding: "24px 18px",
-                  minWidth: 220,
-                  position: "relative",
-                  zIndex: 1,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 28,
-                  }}
-                >
-                  <div
-                    onClick={() => navigate("/")}
-                    style={{
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <img
-                      src="https://play-lh.googleusercontent.com/zW5KMgLpmTvg0TA4xYIztb5HedXa6mqbAflXHBnNWix5kKetiqtR1ZOqNghuBtleiJkN"
-                      alt="Logo"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        objectFit: "cover",
-                        boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontFamily: "Syne,sans-serif",
-                        fontWeight: 800,
-                        fontSize: 16,
-                        letterSpacing: "-0.02em",
-                        color: "#1474f3ea",
-                      }}
-                    >
-                      Asset<span style={{ color: "#f31225ef" }}>IMS</span>
-                    </span>
-                  </div>
-
-                  <button
-                    className="ad-btn ad-btn-white ad-btn-sm"
-                    style={{ padding: "6px 10px" }}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    background: "rgba(56,189,248,.07)",
-                    border: "1px solid rgba(56,189,248,.18)",
-                    borderRadius: 10,
-                    padding: "7px 12px",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      background: "#38bdf8",
-                      boxShadow: "0 0 8px #38bdf8",
-                      display: "inline-block",
-                      animation: "pulse 2s ease infinite",
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#7dd3fc", letterSpacing: ".05em" }}>
-                    System Live · All Services
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,.3)",
-                    letterSpacing: ".14em",
-                    textTransform: "uppercase",
-                    marginBottom: 10,
-                    paddingLeft: 4,
-                  }}
-                >
-                  Navigation
-                </div>
-
-                <nav style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
-                  {navItems.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => navigate(item.path)}
-                      className={`ad-nav-btn${item.path === "/assetdashboard" ? " active" : ""}`}
-                    >
-                      <span
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
-                          background: "rgba(255,255,255,.06)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 14,
-                          flexShrink: 0,
-                        }}
-                      >
-                         <Ic d={item.icon} size={14} />
-                          </span>
-                          {item.label}
-                    </button>
-                  ))}
-                </nav>
-
-                {sectionCounts.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: "rgba(255,255,255,.3)",
-                        letterSpacing: ".14em",
-                        textTransform: "uppercase",
-                        marginBottom: 8,
-                        paddingLeft: 4,
-                      }}
-                    >
-                      Asset Sections
-                    </div>
-
-                    <div style={{ maxHeight: 220, overflowY: "auto" }}>
-                      {sectionCounts.map(([sec, cnt]) => (
-                        <div
-                          key={sec}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "5px 8px",
-                            borderRadius: 8,
-                            marginBottom: 2,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "rgba(255,255,255,.56)",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 5,
-                            }}
-                          >
-                            {SECTION_ICONS[sec] || "📦"} {sec}
-                          </span>
-                          <span
-                            style={{
-                              fontFamily: "Outfit,sans-serif",
-                              fontWeight: 700,
-                              fontSize: 11,
-                              color: "#60a5fa",
-                              background: "rgba(37,99,235,.15)",
-                              padding: "2px 7px",
-                              borderRadius: 999,
-                            }}
-                          >
-                            {cnt}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid rgba(255,255,255,.08)" }}>
-                  <div
-                    style={{
-                      background: "linear-gradient(135deg,rgba(37,99,235,.12),rgba(34,197,94,.06))",
-                      border: "1px solid rgba(37,99,235,.2)",
-                      borderRadius: 14,
-                      padding: 14,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          background: NL_GRADIENT,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          fontWeight: 800,
-                          fontSize: 16,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#f1f5f9",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {user?.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            background: "linear-gradient(135deg,#60a5fa,#4ade80)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            fontWeight: 700,
-                            letterSpacing: ".06em",
-                          }}
-                        >
-                          {roleLabel}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
-
           <section className="ad-main">
             <div className="ad-topbar">
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button className="ad-btn ad-btn-white" style={{ padding: "8px 12px" }} onClick={() => setMenuOpen(!menuOpen)}>
-                  {menuOpen ? (
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-
               <div style={{ flex: 1, textAlign: "center", minWidth: 180 }}>
                 <h1
                   style={{
@@ -2507,6 +2249,7 @@ export default function AssetDashboard() {
           </section>
         </div>
       </div>
+      </SplitSidebarLayout>
 
       <Footer />
 
